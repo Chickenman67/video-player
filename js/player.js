@@ -114,14 +114,6 @@ const Player = {
     // Drag and drop handlers
     this.setupDragAndDrop();
 
-    // Subtitle file input
-    const subtitleInput = Utils.$('#subtitleInput');
-    if (subtitleInput) {
-      this.cleanupFns.push(
-        Utils.on(subtitleInput, 'change', (e) => this.loadSubtitleFile(e))
-      );
-    }
-
     // Load new button
     this.cleanupFns.push(
       Utils.on(this.loadNewBtn, 'click', () => this.showLoadScreen())
@@ -224,9 +216,11 @@ const Player = {
       this.loadScreen.classList.add('hidden');
       this.container.classList.remove('hidden');
       
-      // Reset subtitle detection for new video
-      if (Subtitles) {
-        Subtitles.detectTracks();
+      // Auto-extract subtitles from MKV files (non-blocking)
+      if (typeof MKVSubtitleExtractor !== 'undefined') {
+        this.autoExtractSubtitles(file).catch(e => 
+          console.warn('[Player] Subtitle extraction failed:', e)
+        );
       }
       
       // Auto-play the new video
@@ -341,13 +335,8 @@ const Player = {
         this.loadFile({
           target: { files: [file] }
         });
-      } else if (file.name.match(/\.(srt|vtt)$/i)) {
-        // It's a subtitle file
-        this.loadSubtitleFile({
-          target: { files: [file] }
-        });
       } else {
-        this.showError('Please drop a video file (MP4, MKV, WebM) or subtitle file (.srt, .vtt)');
+        this.showError('Please drop a video file (MP4, MKV, WebM, etc.)');
       }
     };
 
@@ -364,50 +353,44 @@ const Player = {
   },
 
   /**
-   * Load subtitle file from input
+   * Automatically extract subtitles from MKV file
    */
-  loadSubtitleFile(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async autoExtractSubtitles(file) {
+    try {
+      // Only process MKV/Matroska files
+      if (!file.name.match(/\.(mkv|mka|mks|webm)$/i)) {
+        console.log('[Player] File format does not support embedded subtitles');
+        return;
+      }
 
-    // Validate subtitle file
-    if (!file.name.match(/\.(srt|vtt)$/i)) {
-      this.showError('Please select a valid subtitle file (.srt or .vtt)');
-      return;
+      console.log('[Player] Detecting internal subtitles in MKV file...');
+      
+      // Check if MKV parser is available
+      if (typeof MKVSubtitleExtractor === 'undefined') {
+        console.warn('[Player] MKV subtitle extractor not available');
+        return;
+      }
+
+      // Check if file has subtitles
+      const detection = await MKVSubtitleExtractor.detectSubtitles(file);
+      
+      if (detection.found === 0) {
+        console.log('[Player] No internal subtitles found in file');
+        return;
+      }
+
+      console.log(`[Player] Found ${detection.found} subtitle track(s), extracting...`);
+
+      // Extract and load subtitles
+      const result = await MKVSubtitleExtractor.extractFromMKV(file, this.video);
+      
+      if (result.found > 0) {
+        console.log(`✓ Successfully extracted ${result.found} subtitle track(s)`);
+      }
+    } catch (error) {
+      console.warn('[Player] Subtitle extraction skipped:', error.message);
+      // Continue playback without subtitles - not critical
     }
-
-    // Check if video is loaded
-    if (!this.video.src) {
-      this.showError('Please load a video first before loading subtitles');
-      return;
-    }
-
-    console.log('[Player] Loading subtitle file:', file.name);
-
-    // Use SubtitleExtractor to parse and load
-    if (!SubtitleExtractor) {
-      this.showError('Subtitle support not available');
-      return;
-    }
-
-    SubtitleExtractor.loadSubtitleFile(file, this.video)
-      .then(() => {
-        console.log('[Player] Subtitles loaded successfully');
-        // Find and show the most recently added track (the one we just added)
-        for (let i = this.video.textTracks.length - 1; i >= 0; i--) {
-          if (this.video.textTracks[i].mode === 'showing') {
-            this.state.activeSubtitleTrack = i;
-            break;
-          }
-        }
-      })
-      .catch(error => {
-        console.error('[Player] Failed to load subtitles:', error);
-        this.showError(`Failed to load subtitles: ${error.message}`);
-      });
-
-    // Reset file input so same file can be loaded again
-    e.target.value = '';
   },
 
   /**

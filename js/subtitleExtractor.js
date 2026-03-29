@@ -1,6 +1,7 @@
 /**
- * Subtitle Extractor & Parser
- * Simplified for .srt/.vtt file support (no FFmpeg.wasm)
+ * Subtitle Parser - Lightweight Fallback
+ * Parses .srt/.vtt files for fallback subtitle support
+ * Primary MKV subtitle extraction is handled by mkv-subtitles.js
  */
 
 const SubtitleExtractor = {
