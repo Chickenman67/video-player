@@ -60,6 +60,7 @@ const Player = {
     this.errorMessage = Utils.$('#errorMessage');
     this.videoInput = Utils.$('#videoInput');
     this.loadNewBtn = Utils.$('#loadNewBtn');
+    this.transcribeBtn = Utils.$('#transcribeBtn');
   },
 
   /**
@@ -117,6 +118,11 @@ const Player = {
     // Load new button
     this.cleanupFns.push(
       Utils.on(this.loadNewBtn, 'click', () => this.showLoadScreen())
+    );
+
+    // Live Transcribe button
+    this.cleanupFns.push(
+      Utils.on(this.transcribeBtn, 'click', () => this.toggleTranscription())
     );
 
     // Controls visibility
@@ -397,6 +403,13 @@ const Player = {
    * Show load screen (prepare for new video, don't clear current)
    */
   showLoadScreen() {
+    // Stop transcription if running
+    if (typeof SpeechToText !== 'undefined' && SpeechToText.isListening) {
+      SpeechToText.stop();
+      SpeechToText.clear();
+      console.log('[Player] Transcription stopped');
+    }
+
     // Check if we already have a video loaded
     const hasVideo = this.video.src && !this.state.hasError;
     
@@ -415,6 +428,43 @@ const Player = {
     // Reset and trigger file input
     this.videoInput.value = '';
     this.videoInput.click();
+  },
+
+  /**
+   * Toggle live transcription
+   */
+  toggleTranscription() {
+    try {
+      if (!this.video.src || this.state.hasError) {
+        console.warn('[Player] No video loaded, cannot start transcription');
+        return;
+      }
+
+      if (typeof SpeechToText === 'undefined') {
+        console.error('[Player] Speech-to-text module not available');
+        return;
+      }
+
+      if (!SpeechToText.isSupported()) {
+        alert('Web Speech API is not supported in your browser. Try Chrome, Edge, or Safari.');
+        return;
+      }
+
+      if (SpeechToText.isListening) {
+        // Stop transcription
+        console.log('[Player] Stopping transcription');
+        SpeechToText.stop();
+        this.transcribeBtn.classList.remove('active');
+      } else {
+        // Start transcription
+        console.log('[Player] Starting live transcription');
+        SpeechToText.start(this.video);
+        this.transcribeBtn.classList.add('active');
+      }
+    } catch (error) {
+      console.error('[Player] Transcription toggle error:', error);
+      alert('Error accessing microphone. Please check permissions.');
+    }
   },
 
   // =========================================================================

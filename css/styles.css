@@ -547,6 +547,12 @@ video {
   transform: scale(0.95);
 }
 
+.control-btn.active {
+  background: rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+}
+
 .control-btn svg {
   width: 20px;
   height: 20px;
