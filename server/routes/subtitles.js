@@ -26,12 +26,38 @@ if (!fs.existsSync(tempDir)) {
 }
 
 /**
+ * GET /api/status
+ * Check server and FFmpeg health
+ */
+router.get('/status', (req, res) => {
+  try {
+    // Try to probe ffmpeg availability
+    const testPath = path.join(tempDir, 'test.txt');
+    fs.writeFileSync(testPath, 'test');
+    fs.unlinkSync(testPath);
+    
+    res.json({
+      status: 'ok',
+      ffmpeg: 'checking...',
+      temp_dir: tempDir,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      error: err.message
+    });
+  }
+});
+
+/**
  * POST /api/extract-subtitles
  * Extracts subtitle streams from uploaded video file
  */
 router.post('/extract-subtitles', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
+      console.log('[Subtitles] No file uploaded');
       return res.status(400).json({
         success: false,
         error: 'No file uploaded'
@@ -40,10 +66,13 @@ router.post('/extract-subtitles', upload.single('file'), async (req, res) => {
 
     const videoPath = req.file.path;
     const fileName = req.file.originalname;
-    console.log(`[Subtitles] Extracting from: ${fileName}`);
+    console.log(`[Subtitles] File received: ${fileName} (${req.file.size} bytes)`);
+    console.log(`[Subtitles] File path: ${videoPath}`);
 
     // Extract subtitles
     const subtitles = await extractSubtitles(videoPath);
+
+    console.log(`[Subtitles] Extraction complete: ${subtitles.length} subtitle stream(s)`);
 
     // Cleanup temp file
     fs.unlink(videoPath, (err) => {
@@ -56,11 +85,14 @@ router.post('/extract-subtitles', upload.single('file'), async (req, res) => {
       subtitles: subtitles
     });
   } catch (error) {
-    console.error('[Subtitles] Error:', error);
+    console.error('[Subtitles] Error:', error.message);
+    console.error('[Subtitles] Stack:', error.stack);
     
     // Cleanup on error
     if (req.file) {
-      fs.unlink(req.file.path, () => {});
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('[Cleanup] Error on error cleanup:', err);
+      });
     }
 
     res.status(500).json({
@@ -75,24 +107,40 @@ router.post('/extract-subtitles', upload.single('file'), async (req, res) => {
  */
 async function extractSubtitles(videoPath) {
   return new Promise((resolve, reject) => {
+    // 20 second timeout for ffprobe
+    const probeTimeout = setTimeout(() => {
+      console.error('[Subtitles] FFprobe timeout - no response from ffmpeg');
+      resolve([]); // Return empty array instead of error
+    }, 20000);
+
     // Get video information first
     ffmpeg.ffprobe(videoPath, async (err, metadata) => {
+      clearTimeout(probeTimeout);
+      
       if (err) {
-        return reject(new Error('Failed to read video file: ' + err.message));
+        console.error('[Subtitles] FFprobe error:', err.message);
+        return resolve([]); // Graceful fallback
       }
 
       try {
+        console.log('[Subtitles] Video streams found:', metadata.streams.length);
+        
         // Find all subtitle streams
         const subtitleStreams = metadata.streams.filter(
           (stream) => stream.codec_type === 'subtitle'
         );
 
+        console.log('[Subtitles] Subtitle streams found:', subtitleStreams.length);
+        
         if (subtitleStreams.length === 0) {
-          console.log('[Subtitles] No subtitle streams found');
+          console.log('[Subtitles] No subtitle streams found in this video');
           return resolve([]);
         }
 
         console.log(`[Subtitles] Found ${subtitleStreams.length} subtitle stream(s)`);
+        subtitleStreams.forEach((s, i) => {
+          console.log(`[Subtitles] Stream ${i}: codec=${s.codec_name}, lang=${s.tags?.language || 'unknown'}`);
+        });
 
         const extractedSubtitles = [];
         const tempDir = path.join(__dirname, '../temp');
@@ -121,7 +169,8 @@ async function extractSubtitles(videoPath) {
 
         resolve(extractedSubtitles);
       } catch (error) {
-        reject(error);
+        console.error('[Subtitles] Error processing video:', error);
+        resolve([]); // Graceful fallback
       }
     });
   });
@@ -148,10 +197,20 @@ async function extractSingleSubtitle(videoPath, stream, index, tempDir) {
       `[Subtitles] Extracting stream ${streamIndex} (${codec}) -> ${outputFormat}`
     );
 
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      console.error(`[Subtitles] Extraction timeout for stream ${streamIndex}`);
+      resolve(null);
+    }, 30000); // 30 second timeout
+
     ffmpeg(videoPath)
       .outputOptions(`-map 0:${streamIndex}`)
       .output(outputPath)
       .on('end', () => {
+        clearTimeout(timeout);
+        if (timedOut) return;
+        
         try {
           const content = fs.readFileSync(outputPath, 'utf-8');
           console.log(`[Subtitles] Extracted ${content.length} bytes from stream ${streamIndex}`);
@@ -174,6 +233,9 @@ async function extractSingleSubtitle(videoPath, stream, index, tempDir) {
         }
       })
       .on('error', (err) => {
+        clearTimeout(timeout);
+        if (timedOut) return;
+        
         console.error(`[Subtitles] Extraction error for stream ${streamIndex}:`, err.message);
         resolve(null);
       })

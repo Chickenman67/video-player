@@ -1,10 +1,20 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { execSync } = require('child_process');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Check FFmpeg availability
+try {
+  const ffmpegVersion = execSync('ffmpeg -version', { encoding: 'utf-8' }).split('\n')[0];
+  console.log(`[Server] ✓ FFmpeg available: ${ffmpegVersion}`);
+} catch (err) {
+  console.warn('[Server] ⚠️ FFmpeg NOT found - subtitles may not work');
+  console.warn('[Server] Install FFmpeg to enable subtitle extraction');
+}
 
 // Middleware
 app.use(cors());

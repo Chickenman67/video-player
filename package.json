@@ -4,7 +4,7 @@
   "description": "Modern video player with embedded subtitle extraction",
   "main": "server/server.js",
   "scripts": {
-    "start": "cd server && npm install && node server.js",
+    "start": "bash bootstrap.sh",
     "dev": "cd server && npm install && node server.js"
   },
   "dependencies": {
