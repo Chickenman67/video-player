@@ -46,10 +46,24 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[Server] Running on port ${PORT}`);
   console.log(`[Server] Environment: ${process.env.NODE_ENV}`);
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[Server] Local: http://localhost:${PORT}`);
-  }
+  console.log(`[Server] Listening on all interfaces (0.0.0.0:${PORT})`);
+});
+
+// Handle server errors
+server.on('error', (err) => {
+  console.error('[Server] Server error:', err);
+  process.exit(1);
+});
+
+// Handle process errors
+process.on('uncaughtException', (err) => {
+  console.error('[Server] Uncaught exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Server] Unhandled rejection at:', promise, 'reason:', reason);
 });

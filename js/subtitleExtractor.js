@@ -4,10 +4,17 @@
    ========================================================================== */
 
 const SubtitleExtractor = {
-  // API endpoint - changes based on environment
+  // API endpoint - auto-detects environment
   API_URL: (() => {
-    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    return isDev ? 'http://localhost:3000' : 'https://video-player-production-dc18.up.railway.app';
+    const hostname = window.location.hostname;
+    
+    // Local development
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return `http://${hostname}:3000`;
+    }
+    
+    // Production - use same origin/host
+    return window.location.origin;
   })(),
 
   isProcessing: false,
