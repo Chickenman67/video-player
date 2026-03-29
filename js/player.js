@@ -111,6 +111,17 @@ const Player = {
       Utils.on(this.videoInput, 'change', (e) => this.loadFile(e))
     );
 
+    // Drag and drop handlers
+    this.setupDragAndDrop();
+
+    // Subtitle file input
+    const subtitleInput = Utils.$('#subtitleInput');
+    if (subtitleInput) {
+      this.cleanupFns.push(
+        Utils.on(subtitleInput, 'change', (e) => this.loadSubtitleFile(e))
+      );
+    }
+
     // Load new button
     this.cleanupFns.push(
       Utils.on(this.loadNewBtn, 'click', () => this.showLoadScreen())
@@ -284,6 +295,119 @@ const Player = {
     tempVideo.load();
     
     this.showLoading();
+  },
+
+  /**
+   * Setup drag and drop functionality
+   */
+  setupDragAndDrop() {
+    const dropZone = Utils.$('#dropZone');
+    if (!dropZone) return;
+
+    // Prevent default drag behaviors
+    const preventDefaults = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    this.cleanupFns.push(
+      Utils.on(dropZone, 'dragenter', preventDefaults),
+      Utils.on(dropZone, 'dragover', preventDefaults),
+      Utils.on(dropZone, 'dragleave', preventDefaults),
+      Utils.on(dropZone, 'drop', preventDefaults)
+    );
+
+    // Highlight drop zone on drag
+    const highlight = () => dropZone.classList.add('drag-over');
+    const unhighlight = () => dropZone.classList.remove('drag-over');
+
+    this.cleanupFns.push(
+      Utils.on(dropZone, 'dragenter', highlight),
+      Utils.on(dropZone, 'dragover', highlight),
+      Utils.on(dropZone, 'dragleave', unhighlight),
+      Utils.on(dropZone, 'drop', unhighlight)
+    );
+
+    // Handle dropped files
+    const handleDrop = (e) => {
+      const files = e.dataTransfer.files;
+      if (!files.length) return;
+
+      const file = files[0];
+      
+      // Check if it's a video file
+      if (file.type.startsWith('video/') || file.name.match(/\.(mp4|mkv|webm|avi|mov|flv|wmv|m4v)$/i)) {
+        // Simulate file input change
+        this.loadFile({
+          target: { files: [file] }
+        });
+      } else if (file.name.match(/\.(srt|vtt)$/i)) {
+        // It's a subtitle file
+        this.loadSubtitleFile({
+          target: { files: [file] }
+        });
+      } else {
+        this.showError('Please drop a video file (MP4, MKV, WebM) or subtitle file (.srt, .vtt)');
+      }
+    };
+
+    this.cleanupFns.push(
+      Utils.on(dropZone, 'drop', handleDrop)
+    );
+
+    // Click to open file picker
+    this.cleanupFns.push(
+      Utils.on(dropZone, 'click', () => {
+        this.videoInput.click();
+      })
+    );
+  },
+
+  /**
+   * Load subtitle file from input
+   */
+  loadSubtitleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate subtitle file
+    if (!file.name.match(/\.(srt|vtt)$/i)) {
+      this.showError('Please select a valid subtitle file (.srt or .vtt)');
+      return;
+    }
+
+    // Check if video is loaded
+    if (!this.video.src) {
+      this.showError('Please load a video first before loading subtitles');
+      return;
+    }
+
+    console.log('[Player] Loading subtitle file:', file.name);
+
+    // Use SubtitleExtractor to parse and load
+    if (!SubtitleExtractor) {
+      this.showError('Subtitle support not available');
+      return;
+    }
+
+    SubtitleExtractor.loadSubtitleFile(file, this.video)
+      .then(() => {
+        console.log('[Player] Subtitles loaded successfully');
+        // Find and show the most recently added track (the one we just added)
+        for (let i = this.video.textTracks.length - 1; i >= 0; i--) {
+          if (this.video.textTracks[i].mode === 'showing') {
+            this.state.activeSubtitleTrack = i;
+            break;
+          }
+        }
+      })
+      .catch(error => {
+        console.error('[Player] Failed to load subtitles:', error);
+        this.showError(`Failed to load subtitles: ${error.message}`);
+      });
+
+    // Reset file input so same file can be loaded again
+    e.target.value = '';
   },
 
   /**

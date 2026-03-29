@@ -1157,3 +1157,46 @@ input:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ==========================================================================
+   Drag and Drop Zone
+   ========================================================================== */
+
+.drop-zone {
+  border: 3px dashed var(--primary-accent);
+  border-radius: 12px;
+  padding: 40px 20px;
+  margin: 20px 0;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--primary-accent);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.drop-zone:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--primary-accent-light);
+  transform: scale(1.02);
+}
+
+.drop-zone.drag-over {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: var(--primary-accent-light);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  transform: scale(1.03);
+}
+
+.drop-zone svg {
+  opacity: 0.8;
+  transition: transform 0.2s ease;
+}
+
+.drop-zone:hover svg {
+  transform: translateY(-4px);
+}
+
+.drop-zone.drag-over svg {
+  opacity: 1;
+  transform: scale(1.1) translateY(-4px);
+}
