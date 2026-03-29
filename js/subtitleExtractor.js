@@ -6,6 +6,14 @@
 
 const SubtitleExtractor = {
   /**
+   * Dummy function for backwards compatibility with subtitles.js
+   * This is called by subtitles.js but the actual extraction is handled by mkv-subtitles.js
+   */
+  extractSubtitles() {
+    return Promise.resolve([]);
+  },
+
+  /**
    * Parse SRT/VTT subtitle content and create text track
    * @param {string} content - Raw subtitle file content
    * @param {HTMLVideoElement} videoElement - Video to attach subtitles to
