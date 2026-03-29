@@ -41,6 +41,40 @@
       <div class="spinner"></div>
     </div>
 
+    <!-- Stats Overlay -->
+    <div class="stats-overlay hidden" id="statsOverlay">
+      <div class="stats-content">
+        <div class="stat-row">
+          <span class="stat-label">Resolution</span>
+          <span class="stat-value" id="statResolution">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Video Codec</span>
+          <span class="stat-value" id="statVideoCodec">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Audio Codec</span>
+          <span class="stat-value" id="statAudioCodec">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Bitrate</span>
+          <span class="stat-value" id="statBitrate">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Buffer Ahead</span>
+          <span class="stat-value" id="statBufferAhead">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Buffer Health</span>
+          <span class="stat-value" id="statBufferHealth">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Network Speed</span>
+          <span class="stat-value" id="statNetworkSpeed">--</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Error Overlay -->
     <div class="error-overlay" id="errorOverlay">
       <div class="error-content">
@@ -101,6 +135,9 @@
 
         <!-- Spacer -->
         <div class="spacer"></div>
+
+        <!-- Quality Badge -->
+        <div class="quality-badge" id="qualityBadge" title="Video quality info">--</div>
 
         <!-- Speed Dropdown -->
         <div class="dropdown-container">
@@ -201,6 +238,42 @@
                 <button class="toggle-btn active" data-seek="10">10s</button>
                 <button class="toggle-btn" data-seek="15">15s</button>
                 <button class="toggle-btn" data-seek="30">30s</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Buffering -->
+          <div class="settings-group">
+            <h3>Buffering</h3>
+            <div class="setting-row">
+              <label>Buffer Ahead (seconds)</label>
+              <div class="slider-container">
+                <input type="range" class="buffer-slider" id="bufferAheadSlider" min="1" max="30" value="10" step="1">
+                <span class="slider-value" id="bufferAheadValue">10s</span>
+              </div>
+            </div>
+            <div class="setting-row">
+              <label>Buffer Behind (seconds)</label>
+              <div class="slider-container">
+                <input type="range" class="buffer-slider" id="bufferBehindSlider" min="1" max="20" value="5" step="1">
+                <span class="slider-value" id="bufferBehindValue">5s</span>
+              </div>
+            </div>
+            <div class="setting-row">
+              <label>Auto Quality Adjustment</label>
+              <div class="toggle-group">
+                <button class="toggle-btn active" data-auto-quality="on">On</button>
+                <button class="toggle-btn" data-auto-quality="off">Off</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <label>Max Bitrate</label>
+              <div class="toggle-group">
+                <button class="toggle-btn active" data-max-bitrate="auto">Auto</button>
+                <button class="toggle-btn" data-max-bitrate="1000">1 Mbps</button>
+                <button class="toggle-btn" data-max-bitrate="2000">2 Mbps</button>
+                <button class="toggle-btn" data-max-bitrate="5000">5 Mbps</button>
+                <button class="toggle-btn" data-max-bitrate="0">Unlimited</button>
               </div>
             </div>
           </div>

@@ -24,6 +24,8 @@ const Controls = {
   fullscreenBtn: null,
   shortcutsOverlay: null,
   shortcutsClose: null,
+  qualityBadge: null,
+  statsOverlay: null,
 
   // Cleanup functions
   cleanupFns: [],
@@ -60,6 +62,8 @@ const Controls = {
     this.fullscreenBtn = Utils.$('#fullscreenBtn');
     this.shortcutsOverlay = Utils.$('#shortcutsOverlay');
     this.shortcutsClose = Utils.$('#shortcutsClose');
+    this.qualityBadge = Utils.$('#qualityBadge');
+    this.statsOverlay = Utils.$('#statsOverlay');
   },
 
   /**
@@ -140,8 +144,6 @@ const Controls = {
       );
     }
 
-    // Subtitle control
-    this.cleanupFns.push(
     // Settings modal
     this.cleanupFns.push(
       Utils.on(this.settingsBtn, 'click', () => this.showSettings()),
@@ -192,6 +194,7 @@ const Controls = {
         if (e.target === this.shortcutsOverlay) this.hideShortcuts();
       })
     );
+  },
 
   // =========================================================================
   // Progress/Seeking
@@ -368,7 +371,6 @@ const Controls = {
    * Toggle speed menu
    */
   toggleSpeedMenu() {
-    this.closeSubtitleMenu();
     this.speedMenu.classList.toggle('visible');
   },
 
@@ -377,21 +379,6 @@ const Controls = {
    */
   closeSpeedMenu() {
     this.speedMenu.classList.remove('visible');
-  },
-
-  /**
-   * Toggle subtitle menu
-   */
-  toggleSubtitleMenu() {
-    this.closeSpeedMenu();
-    this.subtitleMenu.classList.toggle('visible');
-  },
-
-  /**
-   * Close subtitle menu
-   */
-  closeSubtitleMenu() {
-    this.subtitleMenu.classList.remove('visible');
   },
 
   // =========================================================================
@@ -496,6 +483,90 @@ const Controls = {
     Utils.$$('[data-seek]', this.settingsModal).forEach(btn => {
       btn.classList.toggle('active', parseInt(btn.dataset.seek) === value);
     });
+  },
+
+  /**
+   * Update quality display
+   */
+  updateQualityDisplay() {
+    if (!this.qualityBadge) return;
+    
+    const qualityInfo = Player.state.qualityInfo;
+    const resolution = qualityInfo.resolution;
+    const codec = qualityInfo.videoCodec;
+    
+    // Create quality label
+    let qualityLabel = resolution;
+    if (codec && codec !== 'Unknown') {
+      // Shorten codec name for display
+      let shortCodec = codec;
+      if (codec.includes('H.264')) shortCodec = 'H.264';
+      else if (codec.includes('HEVC') || codec.includes('H.265')) shortCodec = 'H.265';
+      else if (codec.includes('VP9')) shortCodec = 'VP9';
+      else if (codec.includes('VP8')) shortCodec = 'VP8';
+      else if (codec.includes('AV1')) shortCodec = 'AV1';
+      
+      qualityLabel = `${resolution} ${shortCodec}`;
+    }
+    
+    this.qualityBadge.textContent = qualityLabel;
+    this.qualityBadge.title = `Video: ${qualityInfo.videoCodec}\nAudio: ${qualityInfo.audioCodec}\nResolution: ${qualityInfo.width}x${qualityInfo.height}`;
+    
+    console.log('[Controls] Quality display updated:', qualityLabel);
+  },
+
+  /**
+   * Update stats overlay
+   */
+  updateStatsOverlay() {
+    if (!this.statsOverlay) return;
+
+    const qualityInfo = Player.state.qualityInfo;
+    const bufferStats = Player.getBufferStats();
+
+    // Update stat values
+    const statResolution = Utils.$('#statResolution');
+    const statVideoCodec = Utils.$('#statVideoCodec');
+    const statAudioCodec = Utils.$('#statAudioCodec');
+    const statBitrate = Utils.$('#statBitrate');
+    const statBufferAhead = Utils.$('#statBufferAhead');
+    const statBufferHealth = Utils.$('#statBufferHealth');
+    const statNetworkSpeed = Utils.$('#statNetworkSpeed');
+
+    if (statResolution) statResolution.textContent = qualityInfo.resolution || '--';
+    if (statVideoCodec) statVideoCodec.textContent = qualityInfo.videoCodec || '--';
+    if (statAudioCodec) statAudioCodec.textContent = qualityInfo.audioCodec || '--';
+    if (statBitrate) statBitrate.textContent = qualityInfo.bitrate ? Utils.formatBitrate(qualityInfo.bitrate) : '--';
+    if (statBufferAhead) statBufferAhead.textContent = `${bufferStats.bufferAhead}s`;
+    if (statBufferHealth) {
+      statBufferHealth.textContent = bufferStats.health;
+      statBufferHealth.style.color = bufferStats.health === 'good' ? '#10b981' : bufferStats.health === 'warning' ? '#f59e0b' : '#ef4444';
+    }
+    if (statNetworkSpeed) statNetworkSpeed.textContent = bufferStats.networkSpeed ? Utils.formatBitrate(bufferStats.networkSpeed) : '--';
+  },
+
+  /**
+   * Toggle stats overlay
+   */
+  toggleStats() {
+    if (!this.statsOverlay) return;
+    
+    const isVisible = !this.statsOverlay.classList.contains('hidden');
+    this.statsOverlay.classList.toggle('hidden');
+    
+    if (!isVisible) {
+      // Show stats - start updating
+      this.updateStatsOverlay();
+      this.statsUpdateInterval = setInterval(() => this.updateStatsOverlay(), 1000);
+      console.log('[Controls] Stats overlay shown');
+    } else {
+      // Hide stats - stop updating
+      if (this.statsUpdateInterval) {
+        clearInterval(this.statsUpdateInterval);
+        this.statsUpdateInterval = null;
+      }
+      console.log('[Controls] Stats overlay hidden');
+    }
   },
 
   /**

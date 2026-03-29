@@ -266,5 +266,120 @@ const Utils = {
       return cancelIdleCallback(id);
     }
     return clearTimeout(id);
+  },
+
+  /**
+   * Detect supported video codecs
+   * @returns {Array} Array of supported video codecs
+   */
+  detectVideoCodecs() {
+    const video = document.createElement('video');
+    const codecs = [
+      { name: 'H.264 (AVC)', mimeType: 'video/mp4; codecs="avc1.42E01E"' },
+      { name: 'H.264 High', mimeType: 'video/mp4; codecs="avc1.640028"' },
+      { name: 'VP9', mimeType: 'video/webm; codecs="vp9"' },
+      { name: 'VP8', mimeType: 'video/webm; codecs="vp8"' },
+      { name: 'AV1', mimeType: 'video/mp4; codecs="av01.0.01M.08"' },
+      { name: 'HEVC (H.265)', mimeType: 'video/mp4; codecs="hev1.1.6.L93.B0"' },
+      { name: 'HEVC Main', mimeType: 'video/mp4; codecs="hvc1.1.6.L93.B0"' }
+    ];
+
+    return codecs.filter(codec => {
+      const support = video.canPlayType(codec.mimeType);
+      return support === 'probably' || support === 'maybe';
+    }).map(codec => codec.name);
+  },
+
+  /**
+   * Detect supported audio codecs
+   * @returns {Array} Array of supported audio codecs
+   */
+  detectAudioCodecs() {
+    const audio = document.createElement('audio');
+    const codecs = [
+      { name: 'AAC', mimeType: 'audio/mp4; codecs="mp4a.40.2"' },
+      { name: 'AAC-LC', mimeType: 'audio/mp4; codecs="mp4a.40.5"' },
+      { name: 'Opus', mimeType: 'audio/webm; codecs="opus"' },
+      { name: 'Vorbis', mimeType: 'audio/webm; codecs="vorbis"' },
+      { name: 'MP3', mimeType: 'audio/mpeg' },
+      { name: 'FLAC', mimeType: 'audio/flac' },
+      { name: 'PCM', mimeType: 'audio/wav' }
+    ];
+
+    return codecs.filter(codec => {
+      const support = audio.canPlayType(codec.mimeType);
+      return support === 'probably' || support === 'maybe';
+    }).map(codec => codec.name);
+  },
+
+  /**
+   * Check if a specific codec can be played
+   * @param {string} mimeType - The MIME type with codec
+   * @returns {string} 'probably', 'maybe', or '' (not supported)
+   */
+  canPlayCodec(mimeType) {
+    const video = document.createElement('video');
+    return video.canPlayType(mimeType);
+  },
+
+  /**
+   * Get codec info from video element
+   * @param {HTMLVideoElement} video - The video element
+   * @returns {Object} Codec information
+   */
+  getVideoCodecInfo(video) {
+    const info = {
+      videoCodec: 'Unknown',
+      audioCodec: 'Unknown',
+      width: 0,
+      height: 0,
+      bitrate: 0,
+      framerate: 0
+    };
+
+    if (video.videoWidth) info.width = video.videoWidth;
+    if (video.videoHeight) info.height = video.videoHeight;
+
+    // Try to get codec info from video element
+    if (video.webkitVideoDecodedByteCount !== undefined) {
+      info.videoCodec = 'H.264 (WebKit detected)';
+    }
+
+    // Estimate bitrate from buffered data
+    if (video.buffered.length > 0 && video.duration) {
+      const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+      const bytesPerSecond = (video.webkitVideoDecodedByteCount || 0) / bufferedEnd;
+      info.bitrate = Math.round(bytesPerSecond * 8 / 1000); // kbps
+    }
+
+    return info;
+  },
+
+  /**
+   * Format resolution string
+   * @param {number} width
+   * @param {number} height
+   * @returns {string} Resolution label (e.g., "1080p", "720p")
+   */
+  formatResolution(width, height) {
+    if (height >= 2160) return '4K';
+    if (height >= 1440) return '1440p';
+    if (height >= 1080) return '1080p';
+    if (height >= 720) return '720p';
+    if (height >= 480) return '480p';
+    if (height >= 360) return '360p';
+    return `${height}p`;
+  },
+
+  /**
+   * Format bitrate for display
+   * @param {number} kbps - Kilobits per second
+   * @returns {string} Formatted bitrate string
+   */
+  formatBitrate(kbps) {
+    if (kbps >= 10000) {
+      return `${(kbps / 1000).toFixed(1)} Mbps`;
+    }
+    return `${kbps} kbps`;
   }
 };

@@ -29,10 +29,31 @@ const Player = {
     isControlsHidden: false,
     controlsTimeout: null,
     controlsHideTimeout: null,
-    activeSubtitleTrack: -1,
     hasError: false,
     isLoadingNewVideo: false,
-    loadingProgress: 0
+    loadingProgress: 0,
+    // Quality metadata
+    qualityInfo: {
+      videoCodec: 'Unknown',
+      audioCodec: 'Unknown',
+      width: 0,
+      height: 0,
+      resolution: 'Unknown',
+      bitrate: 0,
+      framerate: 0,
+      supportedVideoCodecs: [],
+      supportedAudioCodecs: []
+    },
+    // Buffering settings
+    buffering: {
+      bufferAheadTarget: 10, // seconds
+      bufferBehindTarget: 5, // seconds
+      autoQuality: true,
+      maxBitrate: null, // unlimited
+      lastNetworkSpeed: 0, // kbps
+      bufferHealth: 'good', // 'good', 'warning', 'critical'
+      consecutiveUnderruns: 0
+    }
   },
 
   // Cleanup functions
@@ -569,8 +590,33 @@ const Player = {
     console.log('[Player] Metadata loaded, duration:', this.video.duration);
     this.state.duration = this.video.duration;
     Controls.updateDuration();
-    if (Subtitles) {
-      Subtitles.detectTracks();
+    this.extractQualityMetadata();
+  },
+
+  /**
+   * Extract quality metadata from loaded video
+   */
+  extractQualityMetadata() {
+    const codecInfo = Utils.getVideoCodecInfo(this.video);
+    
+    this.state.qualityInfo = {
+      ...this.state.qualityInfo,
+      videoCodec: codecInfo.videoCodec,
+      audioCodec: codecInfo.audioCodec,
+      width: this.video.videoWidth || 0,
+      height: this.video.videoHeight || 0,
+      resolution: Utils.formatResolution(this.video.videoWidth, this.video.videoHeight),
+      bitrate: codecInfo.bitrate,
+      framerate: codecInfo.framerate,
+      supportedVideoCodecs: Utils.detectVideoCodecs(),
+      supportedAudioCodecs: Utils.detectAudioCodecs()
+    };
+
+    console.log('[Player] Quality info:', this.state.qualityInfo);
+    
+    // Update quality display in controls
+    if (Controls.updateQualityDisplay) {
+      Controls.updateQualityDisplay();
     }
   },
 
@@ -600,11 +646,160 @@ const Player = {
     
     this.state.currentTime = this.video.currentTime;
     Controls.updateProgress();
-    Subtitles.update();
   },
 
   onProgress() {
     Controls.updateBuffered();
+    this.monitorBufferHealth();
+  },
+
+  /**
+   * Monitor buffer health and adjust quality if needed
+   */
+  monitorBufferHealth() {
+    const video = this.video;
+    const buffering = this.state.buffering;
+    
+    if (!video.buffered.length || !video.duration) return;
+
+    const currentTime = video.currentTime;
+    const buffered = video.buffered;
+    
+    // Calculate buffer ahead
+    let bufferAhead = 0;
+    for (let i = 0; i < buffered.length; i++) {
+      if (buffered.start(i) <= currentTime && buffered.end(i) >= currentTime) {
+        bufferAhead = buffered.end(i) - currentTime;
+        break;
+      }
+    }
+
+    // Calculate buffer behind
+    let bufferBehind = 0;
+    for (let i = 0; i < buffered.length; i++) {
+      if (buffered.end(i) >= currentTime && buffered.start(i) <= currentTime) {
+        bufferBehind = currentTime - buffered.start(i);
+        break;
+      }
+    }
+
+    // Determine buffer health
+    const previousHealth = buffering.bufferHealth;
+    if (bufferAhead < 2) {
+      buffering.bufferHealth = 'critical';
+      buffering.consecutiveUnderruns++;
+    } else if (bufferAhead < buffering.bufferAheadTarget * 0.5) {
+      buffering.bufferHealth = 'warning';
+    } else {
+      buffering.bufferHealth = 'good';
+      buffering.consecutiveUnderruns = 0;
+    }
+
+    // Log buffer status changes
+    if (previousHealth !== buffering.bufferHealth) {
+      console.log(`[Player] Buffer health: ${buffering.bufferHealth} (ahead: ${bufferAhead.toFixed(1)}s, behind: ${bufferBehind.toFixed(1)}s)`);
+    }
+
+    // Auto quality adjustment
+    if (buffering.autoQuality && buffering.consecutiveUnderruns > 3) {
+      this.adjustQualityForBandwidth();
+      buffering.consecutiveUnderruns = 0;
+    }
+
+    // Store network speed estimate
+    if (bufferAhead > 0 && video.webkitVideoDecodedByteCount) {
+      const estimatedSpeed = (video.webkitVideoDecodedByteCount * 8) / (currentTime + bufferAhead) / 1000;
+      buffering.lastNetworkSpeed = Math.round(estimatedSpeed);
+    }
+  },
+
+  /**
+   * Adjust quality based on bandwidth constraints
+   */
+  adjustQualityForBandwidth() {
+    const buffering = this.state.buffering;
+    
+    if (!buffering.maxBitrate) {
+      console.log('[Player] Auto quality: Consider reducing video quality for smoother playback');
+      // In a multi-bitrate scenario, this would switch to a lower quality stream
+      // For now, we just log the recommendation
+    }
+  },
+
+  /**
+   * Set buffer ahead target
+   * @param {number} seconds - Target buffer ahead time
+   */
+  setBufferAheadTarget(seconds) {
+    this.state.buffering.bufferAheadTarget = Utils.clamp(seconds, 1, 30);
+    console.log('[Player] Buffer ahead target:', this.state.buffering.bufferAheadTarget, 'seconds');
+  },
+
+  /**
+   * Set buffer behind target
+   * @param {number} seconds - Target buffer behind time
+   */
+  setBufferBehindTarget(seconds) {
+    this.state.buffering.bufferBehindTarget = Utils.clamp(seconds, 1, 20);
+    console.log('[Player] Buffer behind target:', this.state.buffering.bufferBehindTarget, 'seconds');
+  },
+
+  /**
+   * Toggle auto quality adjustment
+   * @param {boolean} enabled
+   */
+  setAutoQuality(enabled) {
+    this.state.buffering.autoQuality = enabled;
+    console.log('[Player] Auto quality:', enabled ? 'enabled' : 'disabled');
+  },
+
+  /**
+   * Set max bitrate limit
+   * @param {number|null} kbps - Max bitrate in kbps, or null for unlimited
+   */
+  setMaxBitrate(kbps) {
+    this.state.buffering.maxBitrate = kbps;
+    console.log('[Player] Max bitrate:', kbps ? `${kbps} kbps` : 'unlimited');
+  },
+
+  /**
+   * Get current buffer stats
+   * @returns {Object} Buffer statistics
+   */
+  getBufferStats() {
+    const video = this.video;
+    const buffering = this.state.buffering;
+    
+    if (!video.buffered.length) {
+      return {
+        bufferAhead: 0,
+        bufferBehind: 0,
+        health: buffering.bufferHealth,
+        networkSpeed: buffering.lastNetworkSpeed
+      };
+    }
+
+    const currentTime = video.currentTime;
+    let bufferAhead = 0;
+    let bufferBehind = 0;
+
+    for (let i = 0; i < video.buffered.length; i++) {
+      const start = video.buffered.start(i);
+      const end = video.buffered.end(i);
+      
+      if (start <= currentTime && end >= currentTime) {
+        bufferAhead = end - currentTime;
+        bufferBehind = currentTime - start;
+        break;
+      }
+    }
+
+    return {
+      bufferAhead: Math.round(bufferAhead * 10) / 10,
+      bufferBehind: Math.round(bufferBehind * 10) / 10,
+      health: buffering.bufferHealth,
+      networkSpeed: buffering.lastNetworkSpeed
+    };
   },
 
   onVolumeChange() {

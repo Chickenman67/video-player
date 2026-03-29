@@ -42,10 +42,6 @@
   --dropdown-item-hover: rgba(59, 130, 246, 0.15);
   --dropdown-item-active: rgba(59, 130, 246, 0.3);
   
-  /* Subtitles */
-  --subtitle-bg: rgba(0, 0, 0, 0.85);
-  --subtitle-border: rgba(59, 130, 246, 0.2);
-  
   /* Settings & Modals */
   --settings-bg: rgba(10, 14, 39, 0.95);
   --modal-overlay: rgba(0, 0, 0, 0.5);
@@ -291,6 +287,57 @@ video {
 }
 
 /* ==========================================================================
+   Stats Overlay
+   ========================================================================== */
+
+.stats-overlay {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(10, 14, 39, 0.9);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: var(--border-radius);
+  padding: 16px;
+  z-index: 15;
+  min-width: 200px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: slideUp 0.3s ease-out;
+}
+
+.stats-overlay.hidden {
+  display: none;
+}
+
+.stats-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
    Error Overlay
    ========================================================================== */
 
@@ -330,50 +377,6 @@ video {
   font-size: 15px;
   max-width: 320px;
   line-height: 1.6;
-}
-
-/* ==========================================================================
-   Subtitle Overlay
-   ========================================================================== */
-
-.subtitle-overlay {
-  position: absolute;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-  z-index: 2;
-  pointer-events: none;
-  max-width: 90%;
-  transition: bottom var(--transition-fast);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.player-container.controls-hidden .subtitle-overlay {
-  bottom: 32px;
-}
-
-.subtitle-overlay .cue {
-  display: inline-block;
-  padding: 12px 20px;
-  background: rgba(0, 0, 0, 0.85);
-  border: none;
-  color: #fff;
-  font-size: clamp(14px, 2.5vw, 24px);
-  font-weight: 600;
-  line-height: 1.6;
-  border-radius: var(--border-radius-sm);
-  text-shadow: 
-    2px 2px 4px rgba(0, 0, 0, 1),
-    -1px -1px 2px rgba(0, 0, 0, 0.8),
-    1px -1px 2px rgba(0, 0, 0, 0.8),
-    -1px 1px 2px rgba(0, 0, 0, 0.8);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  letter-spacing: 0.2px;
-  animation: slideUp 0.3s ease-out;
 }
 
 /* ==========================================================================
@@ -639,7 +642,34 @@ video {
 }
 
 /* ==========================================================================
-   Dropdown Menus (Speed & Subtitles)
+   Quality Badge
+   ========================================================================== */
+
+.quality-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--border-radius-sm);
+  color: var(--success-accent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: help;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.quality-badge:hover {
+  background: rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+/* ==========================================================================
+   Dropdown Menus (Speed)
    ========================================================================== */
 
 .dropdown-container {
@@ -771,6 +801,65 @@ video {
 
 .custom-speed-btn:active {
   transform: scale(0.95);
+}
+
+/* ==========================================================================
+   Buffer Slider
+   ========================================================================== */
+
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 200px;
+}
+
+.buffer-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.buffer-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--primary-accent);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.buffer-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+}
+
+.buffer-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--primary-accent);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+.slider-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-accent);
+  min-width: 30px;
+  text-align: right;
 }
 
 /* ==========================================================================
@@ -1131,10 +1220,6 @@ video {
 
   .shortcuts-grid {
     grid-template-columns: 1fr;
-  }
-
-  .subtitle-overlay {
-    bottom: 60px;
   }
 
   .dropdown-btn {

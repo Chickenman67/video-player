@@ -173,16 +173,16 @@ const Keyboard = {
         this.increaseSpeed();
         break;
 
-      // Toggle captions
-      case 'c':
-        e.preventDefault();
-        Subtitles.toggle();
-        break;
-
       // Show shortcuts
       case '?':
         e.preventDefault();
         Controls.toggleShortcuts();
+        break;
+
+      // Toggle stats overlay
+      case 's':
+        e.preventDefault();
+        Controls.toggleStats();
         break;
 
       // Number keys 0-9 for seeking
@@ -205,7 +205,6 @@ const Keyboard = {
         e.preventDefault();
         Controls.hideShortcuts();
         Controls.closeSpeedMenu();
-        Controls.closeSubtitleMenu();
         break;
 
       default:
