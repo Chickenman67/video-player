@@ -14,7 +14,14 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../')));
 
 // Import routes
-const subtitleRoutes = require('./routes/subtitles');
+let subtitleRoutes;
+try {
+  subtitleRoutes = require('./routes/subtitles');
+  console.log('[Server] Subtitle routes loaded successfully');
+} catch (err) {
+  console.error('[Server] Failed to load subtitle routes:', err.message);
+  subtitleRoutes = require('express').Router();
+}
 
 // API Routes
 app.use('/api', subtitleRoutes);
