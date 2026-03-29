@@ -18,11 +18,6 @@ const Controls = {
   speedBtn: null,
   speedMenu: null,
   speedLabel: null,
-  subtitleBtn: null,
-  subtitleMenu: null,
-  loadSubtitlesBtn: null,
-  subtitleFileInput: null,
-  refreshCaptionsBtn: null,
   settingsBtn: null,
   settingsModal: null,
   settingsClose: null,
@@ -59,8 +54,6 @@ const Controls = {
     this.speedBtn = Utils.$('#speedBtn');
     this.speedMenu = Utils.$('#speedMenu');
     this.speedLabel = Utils.$('#speedLabel');
-    this.subtitleBtn = Utils.$('#subtitleBtn');
-    this.subtitleMenu = Utils.$('#subtitleMenu');
     this.settingsBtn = Utils.$('#settingsBtn');
     this.settingsModal = Utils.$('#settingsModal');
     this.settingsClose = Utils.$('#settingsClose');
@@ -149,20 +142,6 @@ const Controls = {
 
     // Subtitle control
     this.cleanupFns.push(
-      Utils.on(this.subtitleBtn, 'click', (e) => {
-        e.stopPropagation();
-        this.toggleSubtitleMenu();
-      }),
-      Utils.on(this.subtitleMenu, 'click', (e) => {
-        const option = e.target.closest('.dropdown-item');
-        if (option) {
-          const trackIndex = parseInt(option.dataset.track);
-          Subtitles.setTrack(trackIndex);
-          this.closeSubtitleMenu();
-        }
-      })
-    );
-
     // Settings modal
     this.cleanupFns.push(
       Utils.on(this.settingsBtn, 'click', () => this.showSettings()),
@@ -203,7 +182,6 @@ const Controls = {
     this.cleanupFns.push(
       Utils.on(document, 'click', (e) => {
         if (!this.speedBtn.contains(e.target)) this.closeSpeedMenu();
-        if (!this.subtitleBtn.contains(e.target)) this.closeSubtitleMenu();
       })
     );
 
@@ -214,37 +192,6 @@ const Controls = {
         if (e.target === this.shortcutsOverlay) this.hideShortcuts();
       })
     );
-
-    // Load external subtitles
-    const loadSubtitlesBtn = Utils.$('#loadSubtitlesBtn');
-    const subtitleFileInput = Utils.$('#subtitleFileInput');
-    
-    if (loadSubtitlesBtn && subtitleFileInput) {
-      this.cleanupFns.push(
-        Utils.on(loadSubtitlesBtn, 'click', () => {
-          subtitleFileInput.click();
-        }),
-        Utils.on(subtitleFileInput, 'change', (e) => {
-          const file = e.target.files[0];
-          if (file) {
-            Subtitles.loadExternalFile(file);
-            subtitleFileInput.value = ''; // Reset input
-          }
-        })
-      );
-    }
-
-    // Refresh captions
-    const refreshCaptionsBtn = Utils.$('#refreshCaptionsBtn');
-    
-    if (refreshCaptionsBtn) {
-      this.cleanupFns.push(
-        Utils.on(refreshCaptionsBtn, 'click', () => {
-          Subtitles.detectTracks();
-        })
-      );
-    }
-  },
 
   // =========================================================================
   // Progress/Seeking

@@ -60,7 +60,6 @@ const Player = {
     this.errorMessage = Utils.$('#errorMessage');
     this.videoInput = Utils.$('#videoInput');
     this.loadNewBtn = Utils.$('#loadNewBtn');
-    this.transcribeBtn = Utils.$('#transcribeBtn');
   },
 
   /**
@@ -118,11 +117,6 @@ const Player = {
     // Load new button
     this.cleanupFns.push(
       Utils.on(this.loadNewBtn, 'click', () => this.showLoadScreen())
-    );
-
-    // Live Transcribe button
-    this.cleanupFns.push(
-      Utils.on(this.transcribeBtn, 'click', () => this.toggleTranscription())
     );
 
     // Controls visibility
@@ -221,13 +215,6 @@ const Player = {
       this.hideError();
       this.loadScreen.classList.add('hidden');
       this.container.classList.remove('hidden');
-      
-      // Auto-extract subtitles from MKV files (non-blocking)
-      if (typeof MKVSubtitleExtractor !== 'undefined') {
-        this.autoExtractSubtitles(file).catch(e => 
-          console.warn('[Player] Subtitle extraction failed:', e)
-        );
-      }
       
       // Auto-play the new video
       setTimeout(() => {
@@ -359,57 +346,9 @@ const Player = {
   },
 
   /**
-   * Automatically extract subtitles from MKV file
-   */
-  async autoExtractSubtitles(file) {
-    try {
-      // Only process MKV/Matroska files
-      if (!file.name.match(/\.(mkv|mka|mks|webm)$/i)) {
-        console.log('[Player] File format does not support embedded subtitles');
-        return;
-      }
-
-      console.log('[Player] Detecting internal subtitles in MKV file...');
-      
-      // Check if MKV parser is available
-      if (typeof MKVSubtitleExtractor === 'undefined') {
-        console.warn('[Player] MKV subtitle extractor not available');
-        return;
-      }
-
-      // Check if file has subtitles
-      const detection = await MKVSubtitleExtractor.detectSubtitles(file);
-      
-      if (detection.found === 0) {
-        console.log('[Player] No internal subtitles found in file');
-        return;
-      }
-
-      console.log(`[Player] Found ${detection.found} subtitle track(s), extracting...`);
-
-      // Extract and load subtitles
-      const result = await MKVSubtitleExtractor.extractFromMKV(file, this.video);
-      
-      if (result.found > 0) {
-        console.log(`✓ Successfully extracted ${result.found} subtitle track(s)`);
-      }
-    } catch (error) {
-      console.warn('[Player] Subtitle extraction skipped:', error.message);
-      // Continue playback without subtitles - not critical
-    }
-  },
-
-  /**
    * Show load screen (prepare for new video, don't clear current)
    */
   showLoadScreen() {
-    // Stop transcription if running
-    if (typeof SpeechToText !== 'undefined' && SpeechToText.isListening) {
-      SpeechToText.stop();
-      SpeechToText.clear();
-      console.log('[Player] Transcription stopped');
-    }
-
     // Check if we already have a video loaded
     const hasVideo = this.video.src && !this.state.hasError;
     
@@ -428,43 +367,6 @@ const Player = {
     // Reset and trigger file input
     this.videoInput.value = '';
     this.videoInput.click();
-  },
-
-  /**
-   * Toggle live transcription
-   */
-  toggleTranscription() {
-    try {
-      if (!this.video.src || this.state.hasError) {
-        console.warn('[Player] No video loaded, cannot start transcription');
-        return;
-      }
-
-      if (typeof SpeechToText === 'undefined') {
-        console.error('[Player] Speech-to-text module not available');
-        return;
-      }
-
-      if (!SpeechToText.isSupported()) {
-        alert('Web Speech API is not supported in your browser. Try Chrome, Edge, or Safari.');
-        return;
-      }
-
-      if (SpeechToText.isListening) {
-        // Stop transcription
-        console.log('[Player] Stopping transcription');
-        SpeechToText.stop();
-        this.transcribeBtn.classList.remove('active');
-      } else {
-        // Start transcription
-        console.log('[Player] Starting live transcription');
-        SpeechToText.start(this.video);
-        this.transcribeBtn.classList.add('active');
-      }
-    } catch (error) {
-      console.error('[Player] Transcription toggle error:', error);
-      alert('Error accessing microphone. Please check permissions.');
-    }
   },
 
   // =========================================================================
