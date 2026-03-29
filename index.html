@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Player</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Initial Load Screen -->
+  <div class="load-screen" id="loadScreen">
+    <div class="load-content">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="64" height="64">
+        <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/>
+      </svg>
+      <h1>Video Player</h1>
+      <p>Select a video file to begin</p>
+      <label for="videoInput" class="file-label">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+          <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+        </svg>
+        Load Video File
+      </label>
+      <input type="file" id="videoInput" accept="video/*" class="file-input">
+    </div>
+  </div>
+
+  <!-- Player Container (hidden initially) -->
+  <div class="player-container hidden" id="playerContainer">
+    <!-- Video Element with Hardware Acceleration -->
+    <video id="videoPlayer" preload="auto" playsinline webkit-playsinline>
+      Your browser does not support HTML5 video.
+    </video>
+
+    <!-- Subtitle Overlay -->
+    <div class="subtitle-overlay" id="subtitleOverlay"></div>
+
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loadingSpinner">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Error Overlay -->
+    <div class="error-overlay" id="errorOverlay">
+      <div class="error-content">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+        </svg>
+        <p id="errorMessage">Error loading video</p>
+      </div>
+    </div>
+
+    <!-- Controls Container -->
+    <div class="controls-container" id="controlsContainer">
+      <!-- Progress Bar -->
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar">
+          <div class="progress-buffered" id="progressBuffered"></div>
+          <div class="progress-played" id="progressPlayed">
+            <div class="progress-handle" id="progressHandle"></div>
+          </div>
+        </div>
+        <div class="progress-tooltip" id="progressTooltip">0:00</div>
+      </div>
+
+      <!-- All Controls in ONE Row -->
+      <div class="controls">
+        <!-- Play/Pause -->
+        <button class="control-btn" id="playPauseBtn" aria-label="Play">
+          <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+          <svg class="icon-pause hidden" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+          </svg>
+        </button>
+
+        <!-- Volume -->
+        <div class="volume-container">
+          <button class="control-btn" id="muteBtn" aria-label="Mute">
+            <svg class="icon-volume-high" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+            <svg class="icon-volume-low hidden" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/>
+            </svg>
+            <svg class="icon-volume-muted hidden" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+            </svg>
+          </button>
+          <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.01" value="1" aria-label="Volume">
+        </div>
+
+        <!-- Time Display -->
+        <div class="time-display">
+          <span id="currentTime">0:00</span>
+          <span class="time-separator">/</span>
+          <span id="duration">0:00</span>
+        </div>
+
+        <!-- Spacer -->
+        <div class="spacer"></div>
+
+        <!-- Captions Dropdown -->
+        <div class="dropdown-container">
+          <button class="control-btn dropdown-btn" id="subtitleBtn" aria-label="Captions" title="Captions (C)">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+              <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM4 12h4v2H4v-2zm10 6H4v-2h10v2zm6 0h-4v-2h4v2zm0-4H10v-2h10v2z"/>
+            </svg>
+            <span class="dropdown-arrow">▾</span>
+          </button>
+          <div class="dropdown-menu" id="subtitleMenu">
+            <button class="dropdown-item" data-track="-1">None</button>
+          </div>
+        </div>
+
+        <!-- Speed Dropdown -->
+        <div class="dropdown-container">
+          <button class="control-btn dropdown-btn" id="speedBtn" aria-label="Playback speed" title="Playback Speed">
+            <span class="speed-value" id="speedLabel">1</span>
+            <span class="dropdown-arrow">▾</span>
+          </button>
+          <div class="dropdown-menu" id="speedMenu">
+            <button class="dropdown-item" data-speed="0.25">0.25x</button>
+            <button class="dropdown-item" data-speed="0.5">0.5x</button>
+            <button class="dropdown-item" data-speed="0.75">0.75x</button>
+            <button class="dropdown-item active" data-speed="1">1x</button>
+            <button class="dropdown-item" data-speed="1.25">1.25x</button>
+            <button class="dropdown-item" data-speed="1.5">1.5x</button>
+            <button class="dropdown-item" data-speed="1.75">1.75x</button>
+            <button class="dropdown-item" data-speed="2">2x</button>
+            <div class="custom-speed-container">
+              <input type="number" class="custom-speed-input" id="customSpeedInput" min="0.1" max="4" step="0.1" placeholder="Custom">
+              <button class="custom-speed-btn" id="customSpeedBtn">Set</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Load New Video -->
+        <button class="control-btn" id="loadNewBtn" aria-label="Load new video" title="Load New Video">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+          </svg>
+        </button>
+
+        <!-- Settings -->
+        <button class="control-btn" id="settingsBtn" aria-label="Settings" title="Settings">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+          </svg>
+        </button>
+
+        <!-- Fullscreen -->
+        <button class="control-btn" id="fullscreenBtn" aria-label="Fullscreen" title="Fullscreen (F)">
+          <svg class="icon-fullscreen-enter" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+          </svg>
+          <svg class="icon-fullscreen-exit hidden" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Overlay -->
+    <div class="shortcuts-overlay hidden" id="shortcutsOverlay">
+      <div class="shortcuts-content">
+        <h2>Keyboard Shortcuts</h2>
+        <div class="shortcuts-grid">
+          <div class="shortcut-item"><kbd>Space</kbd> / <kbd>K</kbd><span>Play / Pause</span></div>
+          <div class="shortcut-item"><kbd>M</kbd><span>Mute / Unmute</span></div>
+          <div class="shortcut-item"><kbd>F</kbd><span>Fullscreen</span></div>
+          <div class="shortcut-item"><kbd>←</kbd> / <kbd>J</kbd><span>Seek back 10s</span></div>
+          <div class="shortcut-item"><kbd>→</kbd> / <kbd>L</kbd><span>Seek forward 10s</span></div>
+          <div class="shortcut-item"><kbd>↑</kbd><span>Volume +10%</span></div>
+          <div class="shortcut-item"><kbd>↓</kbd><span>Volume -10%</span></div>
+          <div class="shortcut-item"><kbd>0-9</kbd><span>Seek to 0%-90%</span></div>
+          <div class="shortcut-item"><kbd>C</kbd><span>Toggle Captions</span></div>
+          <div class="shortcut-item"><kbd><</kbd> / <kbd>></kbd><span>Decrease / Increase speed</span></div>
+          <div class="shortcut-item"><kbd>?</kbd><span>Toggle this overlay</span></div>
+        </div>
+        <button class="shortcuts-close" id="shortcutsClose">Close</button>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="settings-modal hidden" id="settingsModal">
+      <div class="settings-content">
+        <div class="settings-header">
+          <h2>Settings</h2>
+          <button class="settings-close" id="settingsClose">✕</button>
+        </div>
+        
+        <div class="settings-body">
+          <!-- Performance -->
+          <div class="settings-group">
+            <h3>Performance</h3>
+            <div class="setting-row">
+              <label>Hardware Acceleration</label>
+              <div class="toggle-group">
+                <button class="toggle-btn active" data-hw="on">On</button>
+                <button class="toggle-btn" data-hw="off">Off</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Playback -->
+          <div class="settings-group">
+            <h3>Playback</h3>
+            <div class="setting-row">
+              <label>Arrow Key Skip Duration</label>
+              <div class="toggle-group">
+                <button class="toggle-btn" data-seek="5">5s</button>
+                <button class="toggle-btn active" data-seek="10">10s</button>
+                <button class="toggle-btn" data-seek="15">15s</button>
+                <button class="toggle-btn" data-seek="30">30s</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Keyboard Shortcuts -->
+          <div class="settings-group">
+            <h3>Keyboard Shortcuts</h3>
+            <div class="shortcuts-list">
+              <div class="shortcut-row">
+                <span>Play/Pause</span>
+                <kbd>Space</kbd> / <kbd>K</kbd>
+              </div>
+              <div class="shortcut-row">
+                <span>Mute</span>
+                <kbd>M</kbd>
+              </div>
+              <div class="shortcut-row">
+                <span>Fullscreen</span>
+                <kbd>F</kbd>
+              </div>
+              <div class="shortcut-row">
+                <span>Seek Back</span>
+                <kbd>←</kbd> / <kbd>J</kbd>
+              </div>
+              <div class="shortcut-row">
+                <span>Seek Forward</span>
+                <kbd>→</kbd> / <kbd>L</kbd>
+              </div>
+              <div class="shortcut-row">
+                <span>Volume Up</span>
+                <kbd>↑</kbd>
+              </div>
+              <div class="shortcut-row">
+                <span>Volume Down</span>
+                <kbd>↓</kbd>
+              </div>
+              <div class="shortcut-row">
+                <span>Toggle Captions</span>
+                <kbd>C</kbd>
+              </div>
+              <div class="shortcut-row">
+                <span>Speed Down</span>
+                <kbd><</kbd>
+              </div>
+              <div class="shortcut-row">
+                <span>Speed Up</span>
+                <kbd>></kbd>
+              </div>
+              <div class="shortcut-row">
+                <span>Seek to %</span>
+                <kbd>0-9</kbd>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/subtitleExtractor.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/controls.js"></script>
+  <script src="js/subtitles.js"></script>
+  <script src="js/keyboard.js"></script>
+  <script>
+    // Initialize Video Player
+    document.addEventListener('DOMContentLoaded', function() {
+      Player.init();
+      Controls.init();
+      Subtitles.init();
+      Keyboard.init();
+      console.log('[Video Player] Ready');
+    });
+  </script>
+</body>
+</html>

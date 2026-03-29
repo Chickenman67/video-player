@@ -1,0 +1,1165 @@
+/* ==========================================================================
+   Video Player Styles
+   MPV-inspired, optimized for quality and performance
+   ========================================================================== */
+
+/* CSS Custom Properties */
+:root {
+  /* Backgrounds - Modern Dark Theme */
+  --player-bg: #0a0e27;
+  --controls-bg: rgba(15, 23, 42, 0.8);
+  --controls-bg-blur: rgba(15, 23, 42, 0.4);
+  --controls-hover-bg: rgba(30, 41, 59, 0.95);
+  --backdrop-blur: 20px;
+  
+  /* Accent Colors - Modern Gradient Palette */
+  --primary-accent: #3b82f6;
+  --primary-accent-dark: #1e40af;
+  --primary-accent-light: #60a5fa;
+  --secondary-accent: #8b5cf6;
+  --success-accent: #10b981;
+  
+  /* Text Colors */
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-muted: rgba(255, 255, 255, 0.5);
+  --text-dim: rgba(255, 255, 255, 0.3);
+  
+  /* Progress & UI Elements */
+  --progress-bg: rgba(255, 255, 255, 0.15);
+  --progress-played: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  --progress-buffered: rgba(255, 255, 255, 0.2);
+  --progress-handle: #3b82f6;
+  --progress-handle-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+  
+  /* Volume & Sliders */
+  --volume-track: rgba(255, 255, 255, 0.15);
+  --volume-fill: #3b82f6;
+  
+  /* Dropdowns & Menus */
+  --dropdown-bg: rgba(15, 23, 42, 0.95);
+  --dropdown-border: rgba(59, 130, 246, 0.2);
+  --dropdown-item-hover: rgba(59, 130, 246, 0.15);
+  --dropdown-item-active: rgba(59, 130, 246, 0.3);
+  
+  /* Subtitles */
+  --subtitle-bg: rgba(0, 0, 0, 0.85);
+  --subtitle-border: rgba(59, 130, 246, 0.2);
+  
+  /* Settings & Modals */
+  --settings-bg: rgba(10, 14, 39, 0.95);
+  --modal-overlay: rgba(0, 0, 0, 0.5);
+  
+  /* Toggles & Switches */
+  --toggle-active: #3b82f6;
+  --toggle-inactive: rgba(255, 255, 255, 0.15);
+  
+  /* Borders & Dividers */
+  --border-color: rgba(59, 130, 246, 0.1);
+  --border-radius: 12px;
+  --border-radius-sm: 8px;
+  --border-radius-lg: 16px;
+  
+  /* Animations & Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+
+/* ==========================================================================
+   Base & Reset
+   ========================================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   Load Screen
+   ========================================================================== */
+
+.load-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 500px;
+  min-height: 350px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(26, 31, 58, 0.9) 100%);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(10px);
+  animation: slideUp 0.6s ease-out;
+}
+
+.load-screen.hidden {
+  display: none;
+}
+
+.load-content {
+  text-align: center;
+  padding: 40px;
+}
+
+.load-content svg {
+  color: var(--primary-accent);
+  margin-bottom: 24px;
+  animation: float 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.3));
+}
+
+.load-content h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+.load-content p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   Player Container
+   ========================================================================== */
+
+.player-container {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  aspect-ratio: 16 / 9;
+  background: var(--player-bg);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+  user-select: none;
+  -webkit-user-select: none;
+  border: 1px solid var(--border-color);
+  animation: slideUp 0.6s ease-out;
+}
+
+.player-container.hidden {
+  display: none;
+}
+
+.player-container.fullscreen {
+  max-width: none;
+  width: 100vw;
+  height: 100vh;
+  aspect-ratio: initial;
+  border-radius: 0;
+  border: none;
+}
+
+/* ==========================================================================
+   Video Element - Hardware Accelerated
+   ========================================================================== */
+
+video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  cursor: pointer;
+  object-fit: contain;
+  
+  /* GPU acceleration */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
+  
+  /* Quality settings */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  -webkit-font-smoothing: antialiased;
+  
+  /* Containment for better performance */
+  contain: layout style paint;
+}
+
+.player-container.fullscreen video {
+  object-fit: contain;
+  object-position: center center;
+}
+
+/* ==========================================================================
+   Loading Spinner
+   ========================================================================== */
+
+.loading-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+}
+
+.loading-spinner.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* ==========================================================================
+   Loading Spinner
+   ========================================================================== */
+
+.loading-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+}
+
+.loading-spinner.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(59, 130, 246, 0.15);
+  border-top-color: var(--primary-accent);
+  border-right-color: var(--primary-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.3));
+}
+
+/* ==========================================================================
+   Error Overlay
+   ========================================================================== */
+
+.error-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 14, 39, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--transition-normal), visibility var(--transition-normal);
+}
+
+.error-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.error-content {
+  text-align: center;
+  color: var(--text-secondary);
+  animation: slideUp 0.4s ease-out;
+}
+
+.error-content svg {
+  margin-bottom: 16px;
+  color: #ef4444;
+  filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.3));
+}
+
+.error-content p {
+  font-size: 15px;
+  max-width: 320px;
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   Subtitle Overlay
+   ========================================================================== */
+
+.subtitle-overlay {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 2;
+  pointer-events: none;
+  max-width: 90%;
+  transition: bottom var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-container.controls-hidden .subtitle-overlay {
+  bottom: 32px;
+}
+
+.subtitle-overlay .cue {
+  display: inline-block;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.85);
+  border: none;
+  color: #fff;
+  font-size: clamp(14px, 2.5vw, 24px);
+  font-weight: 600;
+  line-height: 1.6;
+  border-radius: var(--border-radius-sm);
+  text-shadow: 
+    2px 2px 4px rgba(0, 0, 0, 1),
+    -1px -1px 2px rgba(0, 0, 0, 0.8),
+    1px -1px 2px rgba(0, 0, 0, 0.8),
+    -1px 1px 2px rgba(0, 0, 0, 0.8);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0.2px;
+  animation: slideUp 0.3s ease-out;
+}
+
+/* ==========================================================================
+   Controls Container
+   ========================================================================== */
+
+.controls-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.95) 40%, rgba(15, 23, 42, 0.95) 100%);
+  padding: 32px 16px 16px 16px;
+  z-index: 5;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  contain: layout style paint;
+}
+
+.player-container.controls-hidden .controls-container {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.player-container.paused .controls-container {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* ==========================================================================
+   Progress Bar
+   ========================================================================== */
+
+.progress-container {
+  position: relative;
+  width: 100%;
+  height: 20px;
+  cursor: pointer;
+  padding: 8px 0;
+  margin-bottom: 12px;
+}
+
+.progress-bar {
+  position: relative;
+  width: 100%;
+  height: 3px;
+  background: var(--progress-bg);
+  border-radius: 2px;
+  overflow: hidden;
+  transition: height var(--transition-fast);
+  backdrop-filter: blur(4px);
+}
+
+.progress-container:hover .progress-bar {
+  height: 6px;
+}
+
+.progress-buffered {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--progress-buffered);
+  border-radius: 2px;
+  width: 0%;
+  will-change: width;
+  transition: width 0.2s linear;
+}
+
+.progress-played {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--progress-played);
+  border-radius: 2px;
+  width: 0%;
+  will-change: width;
+  transition: width 0.2s linear;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+}
+
+.progress-handle {
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%) scale(0);
+  width: 15px;
+  height: 15px;
+  background: var(--progress-handle);
+  border-radius: 50%;
+  box-shadow: var(--progress-handle-shadow), 0 0 8px rgba(0, 0, 0, 0.4);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  cursor: grab;
+}
+
+.progress-handle:active {
+  cursor: grabbing;
+}
+
+.progress-container:hover .progress-handle {
+  transform: translateY(-50%) scale(1);
+}
+
+.progress-tooltip {
+  position: absolute;
+  bottom: 28px;
+  left: 0;
+  transform: translateX(-50%);
+  background: var(--controls-hover-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 6px 10px;
+  border-radius: var(--border-radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+}
+
+.progress-container:hover .progress-tooltip {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   Controls - Single Row Layout
+   ========================================================================== */
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: nowrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--border-radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  position: relative;
+  flex-shrink: 0;
+  backdrop-filter: blur(4px);
+}
+
+.control-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.2);
+  transform: translateY(-2px);
+}
+
+.control-btn:active {
+  transform: scale(0.95);
+}
+
+.control-btn svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.control-btn:hover svg {
+  transform: scale(1.1);
+}
+
+.control-btn .hidden {
+  display: none;
+}
+
+/* ==========================================================================
+   Volume Control
+   ========================================================================== */
+
+.volume-container {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0;
+  height: 3px;
+  background: var(--volume-track);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  margin: 0 4px;
+  transition: width var(--transition-normal);
+  overflow: hidden;
+}
+
+.volume-container:hover .volume-slider {
+  width: 70px;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 11px;
+  height: 11px;
+  background: var(--volume-fill);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  background: var(--volume-fill);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Time Display
+   ========================================================================== */
+
+.time-display {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  padding: 0 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.time-separator {
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Dropdown Menus (Speed & Subtitles)
+   ========================================================================== */
+
+.dropdown-container {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dropdown-btn {
+  gap: 3px;
+  width: auto;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dropdown-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.speed-value {
+  min-width: 16px;
+  text-align: center;
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: 1px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px) scale(0.95);
+  background: rgba(20, 20, 25, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius);
+  padding: 8px 0;
+  min-width: 140px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-normal), visibility var(--transition-normal), transform var(--transition-normal);
+}
+
+.dropdown-menu.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), padding-left var(--transition-fast);
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background: var(--dropdown-item-hover);
+  color: var(--text-primary);
+  padding-left: 20px;
+}
+
+.dropdown-item.active {
+  color: var(--primary-accent);
+  font-weight: 700;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+/* Custom Speed Input */
+.custom-speed-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 4px;
+}
+
+.custom-speed-input {
+  width: 60px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.custom-speed-input:focus {
+  border-color: var(--toggle-active);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.custom-speed-input::placeholder {
+  color: var(--text-muted);
+}
+
+.custom-speed-btn {
+  padding: 4px 10px;
+  background: var(--toggle-active);
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.custom-speed-btn:hover {
+  background: #3a8eef;
+}
+
+.custom-speed-btn:active {
+  transform: scale(0.95);
+}
+
+/* ==========================================================================
+   Settings Modal
+   ========================================================================== */
+
+.settings-modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-normal), visibility var(--transition-normal);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+}
+
+.settings-modal.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.settings-content {
+  background: var(--settings-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  width: 90%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.4s ease-out;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.settings-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+
+.settings-close {
+  width: 36px;
+  height: 36px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--border-radius-sm);
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.settings-close:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: var(--text-primary);
+}
+
+.settings-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.settings-group {
+  margin-bottom: 24px;
+}
+
+.settings-group:last-child {
+  margin-bottom: 0;
+}
+
+.settings-group h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.setting-row label {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.toggle-group {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 3px;
+}
+
+.toggle-btn {
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.toggle-btn.active {
+  background: var(--toggle-active);
+  color: #fff;
+}
+
+/* Shortcuts List */
+.shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.shortcut-row:last-child {
+  border-bottom: none;
+}
+
+.shortcut-row span {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.shortcut-row kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Keyboard Shortcuts Overlay
+   ========================================================================== */
+
+.shortcuts-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-normal), visibility var(--transition-normal);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+}
+
+.shortcuts-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.shortcuts-content {
+  max-width: 500px;
+  width: 90%;
+  padding: 32px;
+  background: var(--settings-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-xl);
+  animation: slideUp 0.4s ease-out;
+}
+
+.shortcuts-content h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  text-align: center;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 24px;
+  margin-bottom: 24px;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.shortcut-item kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 28px;
+  padding: 0 6px;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: var(--border-radius-sm);
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary-accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.shortcuts-close {
+  display: block;
+  margin: 20px auto 0;
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  border-radius: var(--border-radius);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.shortcuts-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ==========================================================================
+   File Loader
+   ========================================================================== */
+
+.file-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%);
+  border: 1.5px solid rgba(59, 130, 246, 0.4);
+  border-radius: var(--border-radius);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-normal), border-color var(--transition-normal), transform var(--transition-normal), box-shadow var(--transition-normal);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+}
+
+.file-label:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(139, 92, 246, 0.25) 100%);
+  border-color: rgba(59, 130, 246, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 24px rgba(59, 130, 246, 0.25);
+}
+
+.file-label:active {
+  transform: translateY(0);
+}
+
+.file-label svg {
+  width: 20px;
+  height: 20px;
+  transition: transform var(--transition-fast);
+}
+
+.file-label:hover svg {
+  transform: scale(1.1);
+}
+
+.file-input {
+  display: none;
+}
+
+/* ==========================================================================
+   Hidden Utility
+   ========================================================================== */
+
+.hidden {
+  display: none !important;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media (max-width: 600px) {
+  .controls {
+    gap: 1px;
+  }
+
+  .control-btn {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+  }
+
+  .control-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .time-display {
+    font-size: 11px;
+    padding: 0 4px;
+  }
+
+  .volume-container:hover .volume-slider {
+    width: 50px;
+  }
+
+  .shortcuts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .subtitle-overlay {
+    bottom: 60px;
+  }
+
+  .dropdown-btn {
+    padding: 0 6px;
+  }
+
+  .settings-content {
+    width: 95%;
+    max-height: 90vh;
+  }
+}
+
+/* ==========================================================================
+   Accessibility
+   ========================================================================== */
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
