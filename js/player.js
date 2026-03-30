@@ -14,6 +14,9 @@ const Player = {
   videoInput: null,
   loadNewBtn: null,
 
+  // Current file reference for codec detection
+  currentFile: null,
+
   // State
   state: {
     isPlaying: false,
@@ -168,6 +171,7 @@ const Player = {
     }
 
     this.state.isLoadingNewVideo = true;
+    this.currentFile = file; // Store file reference for codec detection
     
     // Create new video URL with revocation timeout for safety
     const newUrl = URL.createObjectURL(file);
@@ -597,7 +601,7 @@ const Player = {
    * Extract quality metadata from loaded video
    */
   extractQualityMetadata() {
-    const codecInfo = Utils.getVideoCodecInfo(this.video);
+    const codecInfo = Utils.getVideoCodecInfo(this.video, this.currentFile);
     
     this.state.qualityInfo = {
       ...this.state.qualityInfo,
@@ -612,12 +616,63 @@ const Player = {
       supportedAudioCodecs: Utils.detectAudioCodecs()
     };
 
+    // Auto-configure buffering based on video properties
+    this.autoConfigureBuffering(codecInfo);
+
     console.log('[Player] Quality info:', this.state.qualityInfo);
     
     // Update quality display in controls
     if (Controls.updateQualityDisplay) {
       Controls.updateQualityDisplay();
     }
+  },
+
+  /**
+   * Automatically configure buffering based on video properties
+   * @param {Object} codecInfo - Codec information
+   */
+  autoConfigureBuffering(codecInfo) {
+    const buffering = this.state.buffering;
+    const duration = this.video.duration;
+    const bitrate = codecInfo.bitrate;
+    
+    // Auto-adjust buffer ahead based on video duration
+    if (duration > 3600) { // > 1 hour
+      buffering.bufferAheadTarget = 15; // Longer buffer for long videos
+    } else if (duration > 1800) { // > 30 minutes
+      buffering.bufferAheadTarget = 12;
+    } else {
+      buffering.bufferAheadTarget = 10; // Default
+    }
+    
+    // Auto-adjust based on bitrate (higher bitrate = more buffering)
+    if (bitrate > 10000) { // > 10 Mbps
+      buffering.bufferAheadTarget = Math.max(buffering.bufferAheadTarget, 15);
+      buffering.bufferBehindTarget = 8;
+    } else if (bitrate > 5000) { // > 5 Mbps
+      buffering.bufferAheadTarget = Math.max(buffering.bufferAheadTarget, 12);
+      buffering.bufferBehindTarget = 6;
+    } else {
+      buffering.bufferBehindTarget = 5; // Default
+    }
+    
+    // Detect if codec might need more buffering (e.g., HEVC on unsupported browsers)
+    if (codecInfo.videoCodec.includes('H.265') || codecInfo.videoCodec.includes('HEVC')) {
+      const hevcSupport = Utils.canPlayCodec('video/mp4; codecs="hev1.1.6.L93.B0"');
+      if (hevcSupport !== 'probably') {
+        // HEVC might need software decoding, increase buffer
+        buffering.bufferAheadTarget = Math.max(buffering.bufferAheadTarget, 18);
+        buffering.bufferBehindTarget = 10;
+        console.log('[Player] HEVC detected with limited support, increasing buffer');
+      }
+    }
+    
+    console.log('[Player] Auto-configured buffering:', {
+      ahead: buffering.bufferAheadTarget,
+      behind: buffering.bufferBehindTarget,
+      bitrate: bitrate,
+      duration: duration
+    });
   },
 
   onCanPlay() {

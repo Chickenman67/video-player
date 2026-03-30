@@ -5,7 +5,7 @@
 
 const Keyboard = {
   // Configurable seek duration (seconds)
-  seekDuration: 10,
+  seekDuration: 5,
   
   // Cleanup functions
   cleanupFns: [],
@@ -68,23 +68,26 @@ const Keyboard = {
 
   /**
    * Load settings from localStorage
+   * Note: seekDuration is hardcoded to 5 seconds - ignores localStorage
    */
   loadSettings() {
-    const savedSeek = localStorage.getItem('videoPlayer_seekDuration');
-    if (savedSeek) {
-      this.seekDuration = parseInt(savedSeek);
-    }
+    // Hardcode seek duration to 5 seconds - ignore any saved settings
+    this.seekDuration = 5;
+    // Clear any saved seek duration from localStorage
+    localStorage.removeItem('videoPlayer_seekDuration');
   },
 
   /**
    * Set seek duration
-   * @param {number} seconds - seek duration in seconds
+   * Note: Seek duration is hardcoded to 5 seconds - changes are ignored
+   * @param {number} seconds - seek duration in seconds (ignored)
    */
   setSeekDuration(seconds) {
-    this.seekDuration = seconds;
-    localStorage.setItem('videoPlayer_seekDuration', seconds);
-    console.log('[Keyboard] Seek duration set to:', seconds, 'seconds');
-    this.showFeedback(`Seek duration: ${seconds}s`);
+    // Always force 5 seconds - ignore any attempt to change
+    this.seekDuration = 5;
+    localStorage.removeItem('videoPlayer_seekDuration');
+    console.log('[Keyboard] Seek duration hardcoded to 5 seconds');
+    this.showFeedback(`Seek duration: 5s (hardcoded)`);
   },
 
   /**

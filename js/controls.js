@@ -194,6 +194,53 @@ const Controls = {
         if (e.target === this.shortcutsOverlay) this.hideShortcuts();
       })
     );
+
+    // Buffering settings
+    const bufferAheadSlider = Utils.$('#bufferAheadSlider');
+    const bufferBehindSlider = Utils.$('#bufferBehindSlider');
+    const bufferAheadValue = Utils.$('#bufferAheadValue');
+    const bufferBehindValue = Utils.$('#bufferBehindValue');
+
+    if (bufferAheadSlider) {
+      this.cleanupFns.push(
+        Utils.on(bufferAheadSlider, 'input', (e) => {
+          const value = parseInt(e.target.value);
+          Player.setBufferAheadTarget(value);
+          if (bufferAheadValue) bufferAheadValue.textContent = `${value}s`;
+        })
+      );
+    }
+
+    if (bufferBehindSlider) {
+      this.cleanupFns.push(
+        Utils.on(bufferBehindSlider, 'input', (e) => {
+          const value = parseInt(e.target.value);
+          Player.setBufferBehindTarget(value);
+          if (bufferBehindValue) bufferBehindValue.textContent = `${value}s`;
+        })
+      );
+    }
+
+    // Auto quality toggle
+    this.cleanupFns.push(
+      Utils.on(document, 'click', (e) => {
+        const autoQualityToggle = e.target.closest('[data-auto-quality]');
+        if (autoQualityToggle) {
+          const value = autoQualityToggle.dataset.autoQuality;
+          Player.setAutoQuality(value === 'on');
+          this.updateAutoQualityUI(value);
+        }
+
+        // Max bitrate toggle
+        const maxBitrateToggle = e.target.closest('[data-max-bitrate]');
+        if (maxBitrateToggle) {
+          const value = maxBitrateToggle.dataset.maxBitrate;
+          const bitrate = value === 'auto' ? null : parseInt(value);
+          Player.setMaxBitrate(bitrate);
+          this.updateMaxBitrateUI(value);
+        }
+      })
+    );
   },
 
   // =========================================================================
@@ -450,6 +497,7 @@ const Controls = {
    * Show settings modal
    */
   showSettings() {
+    this.initSettingsUI();
     this.settingsModal.classList.remove('hidden');
     this.settingsModal.offsetHeight;
     this.settingsModal.classList.add('visible');
@@ -483,6 +531,59 @@ const Controls = {
     Utils.$$('[data-seek]', this.settingsModal).forEach(btn => {
       btn.classList.toggle('active', parseInt(btn.dataset.seek) === value);
     });
+  },
+
+  /**
+   * Update auto quality UI
+   * @param {string} value - 'on' or 'off'
+   */
+  updateAutoQualityUI(value) {
+    Utils.$$('[data-auto-quality]', this.settingsModal).forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.autoQuality === value);
+    });
+  },
+
+  /**
+   * Update max bitrate UI
+   * @param {string} value - bitrate value or 'auto'
+   */
+  updateMaxBitrateUI(value) {
+    Utils.$$('[data-max-bitrate]', this.settingsModal).forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.maxBitrate === value);
+    });
+  },
+
+  /**
+   * Initialize settings UI with current values
+   */
+  initSettingsUI() {
+    const buffering = Player.state.buffering;
+    
+    // Update buffer sliders
+    const bufferAheadSlider = Utils.$('#bufferAheadSlider');
+    const bufferBehindSlider = Utils.$('#bufferBehindSlider');
+    const bufferAheadValue = Utils.$('#bufferAheadValue');
+    const bufferBehindValue = Utils.$('#bufferBehindValue');
+    
+    if (bufferAheadSlider) {
+      bufferAheadSlider.value = buffering.bufferAheadTarget;
+      if (bufferAheadValue) bufferAheadValue.textContent = `${buffering.bufferAheadTarget}s`;
+    }
+    
+    if (bufferBehindSlider) {
+      bufferBehindSlider.value = buffering.bufferBehindTarget;
+      if (bufferBehindValue) bufferBehindValue.textContent = `${buffering.bufferBehindTarget}s`;
+    }
+    
+    // Update auto quality toggle
+    this.updateAutoQualityUI(buffering.autoQuality ? 'on' : 'off');
+    
+    // Update max bitrate toggle
+    const maxBitrateValue = buffering.maxBitrate === null ? 'auto' : buffering.maxBitrate.toString();
+    this.updateMaxBitrateUI(maxBitrateValue);
+    
+    // Update seek duration UI to reflect current Keyboard.seekDuration
+    this.updateSeekDurationUI(Keyboard.seekDuration);
   },
 
   /**

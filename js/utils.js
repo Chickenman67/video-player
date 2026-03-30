@@ -323,30 +323,104 @@ const Utils = {
   },
 
   /**
-   * Get codec info from video element
+   * Get codec info from video element and file
    * @param {HTMLVideoElement} video - The video element
+   * @param {File} file - The video file (optional)
    * @returns {Object} Codec information
    */
-  getVideoCodecInfo(video) {
+  getVideoCodecInfo(video, file = null) {
     const info = {
       videoCodec: 'Unknown',
       audioCodec: 'Unknown',
       width: 0,
       height: 0,
       bitrate: 0,
-      framerate: 0
+      framerate: 0,
+      fileSize: file ? file.size : 0
     };
 
     if (video.videoWidth) info.width = video.videoWidth;
     if (video.videoHeight) info.height = video.videoHeight;
 
-    // Try to get codec info from video element
-    if (video.webkitVideoDecodedByteCount !== undefined) {
-      info.videoCodec = 'H.264 (WebKit detected)';
+    // Detect codec from file name and type
+    if (file) {
+      const fileName = file.name.toLowerCase();
+      const fileType = file.type.toLowerCase();
+
+      // Check for HEVC/H.265 indicators - more comprehensive patterns
+      if (fileName.includes('x265') || fileName.includes('h265') || fileName.includes('hevc') || 
+          fileName.includes('265') || fileName.includes('hev') ||
+          fileType.includes('hev1') || fileType.includes('hvc1') ||
+          fileType.includes('hevc')) {
+        info.videoCodec = 'H.265 (HEVC)';
+      }
+      // Check for AV1
+      else if (fileName.includes('av1') || fileName.includes('av01') || fileType.includes('av01')) {
+        info.videoCodec = 'AV1';
+      }
+      // Check for VP9
+      else if (fileName.includes('vp9') || fileName.includes('vp09') || fileType.includes('vp09')) {
+        info.videoCodec = 'VP9';
+      }
+      // Check for VP8
+      else if (fileName.includes('vp8') || fileName.includes('vp08') || fileType.includes('vp08')) {
+        info.videoCodec = 'VP8';
+      }
+      // Check for H.264/x264
+      else if (fileName.includes('x264') || fileName.includes('h264') || fileName.includes('avc') ||
+               fileName.includes('264') || fileType.includes('avc1')) {
+        info.videoCodec = 'H.264 (AVC)';
+      }
+      // Check file extension for codec inference
+      else if (fileType.includes('mp4') || fileType.includes('m4v')) {
+        info.videoCodec = 'H.264 (MP4)';
+      }
+      else if (fileType.includes('webm')) {
+        info.videoCodec = 'VP9 (WebM)';
+      }
+      else if (fileType.includes('mkv') || fileType.includes('x-matroska')) {
+        // MKV can contain various codecs, check filename first
+        if (fileName.includes('hevc') || fileName.includes('x265') || fileName.includes('h265') || fileName.includes('265')) {
+          info.videoCodec = 'H.265 (MKV)';
+        } else if (fileName.includes('av1')) {
+          info.videoCodec = 'AV1 (MKV)';
+        } else if (fileName.includes('vp9')) {
+          info.videoCodec = 'VP9 (MKV)';
+        } else {
+          info.videoCodec = 'H.264 (MKV)';
+        }
+      }
+      else if (fileType.includes('avi')) {
+        info.videoCodec = 'H.264 (AVI)';
+      }
+      else if (fileType.includes('mov')) {
+        info.videoCodec = 'H.264 (MOV)';
+      }
     }
 
-    // Estimate bitrate from buffered data
-    if (video.buffered.length > 0 && video.duration) {
+    // Try to detect codec from media source
+    if (video.captureStream || video.mozCaptureStream) {
+      try {
+        const stream = video.captureStream ? video.captureStream() : video.mozCaptureStream();
+        const videoTracks = stream.getVideoTracks();
+        if (videoTracks.length > 0) {
+          const settings = videoTracks[0].getSettings();
+          if (settings.codec) {
+            info.videoCodec = settings.codec;
+          }
+        }
+      } catch (e) {
+        // Stream capture not supported or failed
+      }
+    }
+
+    // Estimate bitrate from duration and file size
+    if (file && video.duration && video.duration > 0) {
+      const bytesPerSecond = file.size / video.duration;
+      info.bitrate = Math.round(bytesPerSecond * 8 / 1000); // kbps
+    }
+    // Fallback: estimate from buffered data
+    else if (video.buffered.length > 0 && video.duration) {
       const bufferedEnd = video.buffered.end(video.buffered.length - 1);
       const bytesPerSecond = (video.webkitVideoDecodedByteCount || 0) / bufferedEnd;
       info.bitrate = Math.round(bytesPerSecond * 8 / 1000); // kbps
