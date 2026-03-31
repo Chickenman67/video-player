@@ -450,6 +450,121 @@ const Utils = {
   },
 
   /**
+   * Check codec support using Media Capabilities API (more powerful than canPlayType)
+   * @param {Object} config - Video/audio configuration
+   * @returns {Promise<Object>} Support info including smooth and power efficient
+   */
+  async checkMediaCapabilities(config) {
+    if (!('mediaCapabilities' in navigator)) {
+      return { supported: false, smooth: false, powerEfficient: false, reason: 'Media Capabilities API not available' };
+    }
+
+    try {
+      const result = await navigator.mediaCapabilities.decodingInfo(config);
+      return {
+        supported: result.supported,
+        smooth: result.smooth,
+        powerEfficient: result.powerEfficient,
+        reason: null
+      };
+    } catch (err) {
+      return { supported: false, smooth: false, powerEfficient: false, reason: err.message };
+    }
+  },
+
+  /**
+   * Check video codec support using Media Capabilities API
+   * @param {string} contentType - MIME type with codec
+   * @param {number} width - Video width
+   * @param {number} height - Video height
+   * @param {number} bitrate - Bitrate in bps
+   * @param {number} framerate - Framerate
+   * @returns {Promise<Object>} Support info
+   */
+  async checkVideoCodecCapabilities(contentType, width = 1920, height = 1080, bitrate = 5000000, framerate = 30) {
+    const config = {
+      type: 'file',
+      video: {
+        contentType,
+        width,
+        height,
+        bitrate,
+        framerate
+      }
+    };
+
+    return this.checkMediaCapabilities(config);
+  },
+
+  /**
+   * Check audio codec support using Media Capabilities API
+   * @param {string} contentType - MIME type with codec
+   * @param {number} channels - Number of audio channels
+   * @param {number} bitrate - Bitrate in bps
+   * @param {number} samplerate - Sample rate in Hz
+   * @returns {Promise<Object>} Support info
+   */
+  async checkAudioCodecCapabilities(contentType, channels = 2, bitrate = 128000, samplerate = 44100) {
+    const config = {
+      type: 'file',
+      audio: {
+        contentType,
+        channels,
+        bitrate,
+        samplerate
+      }
+    };
+
+    return this.checkMediaCapabilities(config);
+  },
+
+  /**
+   * Comprehensive codec support check using both canPlayType and Media Capabilities API
+   * @param {string} mimeType - MIME type with codec
+   * @param {string} type - 'video' or 'audio'
+   * @param {Object} options - Additional options (width, height, bitrate, framerate, etc.)
+   * @returns {Promise<Object>} Comprehensive support info
+   */
+  async checkCodecSupport(mimeType, type = 'video', options = {}) {
+    const video = document.createElement('video');
+    const canPlayType = video.canPlayType(mimeType);
+
+    // Basic support from canPlayType
+    const basicSupport = canPlayType === 'probably' || canPlayType === 'maybe';
+
+    // Enhanced support from Media Capabilities API
+    let enhancedSupport = null;
+    if (type === 'video') {
+      enhancedSupport = await this.checkVideoCodecCapabilities(
+        mimeType,
+        options.width || 1920,
+        options.height || 1080,
+        options.bitrate || 5000000,
+        options.framerate || 30
+      );
+    } else if (type === 'audio') {
+      enhancedSupport = await this.checkAudioCodecCapabilities(
+        mimeType,
+        options.channels || 2,
+        options.bitrate || 128000,
+        options.samplerate || 44100
+      );
+    }
+
+    return {
+      mimeType,
+      type,
+      canPlayType,
+      basicSupport,
+      enhancedSupport,
+      // If Media Capabilities API is available, use its result; otherwise fall back to canPlayType
+      supported: enhancedSupport ? enhancedSupport.supported : basicSupport,
+      smooth: enhancedSupport ? enhancedSupport.smooth : null,
+      powerEfficient: enhancedSupport ? enhancedSupport.powerEfficient : null
+    };
+  },
+
+  /**
    * Get codec info from video element and file
    * @param {HTMLVideoElement} video - The video element
    * @param {File} file - The video file (optional)

@@ -246,6 +246,14 @@
                 <button class="toggle-btn" data-hw="off">Off</button>
               </div>
             </div>
+            <div class="transcoding-setting">
+              <label>Audio Transcoding (for ChromeOS)</label>
+              <div class="toggle-group">
+                <button class="toggle-btn" data-transcode="on">On</button>
+                <button class="toggle-btn active" data-transcode="off">Off</button>
+              </div>
+              <p class="transcoding-info">Convert unsupported audio (DTS, E-AC3) to AAC. Uses ffmpeg.wasm (~28MB). May be slow on large files.</p>
+            </div>
           </div>
 
           <!-- Playback -->

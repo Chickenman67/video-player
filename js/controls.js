@@ -288,6 +288,14 @@ const Controls = {
           Player.setMaxBitrate(bitrate);
           this.updateMaxBitrateUI(value);
         }
+
+        // Transcoding toggle
+        const transcodeToggle = e.target.closest('[data-transcode]');
+        if (transcodeToggle) {
+          const value = transcodeToggle.dataset.transcode;
+          Player.setTranscodingEnabled(value === 'on');
+          this.updateTranscodingUI(value);
+        }
       })
     );
   },
@@ -599,6 +607,16 @@ const Controls = {
   updateMaxBitrateUI(value) {
     Utils.$$('[data-max-bitrate]', this.settingsModal).forEach(btn => {
       btn.classList.toggle('active', btn.dataset.maxBitrate === value);
+    });
+  },
+
+  /**
+   * Update transcoding UI
+   * @param {string} value - 'on' or 'off'
+   */
+  updateTranscodingUI(value) {
+    Utils.$$('[data-transcode]', this.settingsModal).forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.transcode === value);
     });
   },
 

@@ -56,7 +56,12 @@ const Player = {
       lastNetworkSpeed: 0, // kbps
       bufferHealth: 'good', // 'good', 'warning', 'critical'
       consecutiveUnderruns: 0
-    }
+    },
+    // Transcoding settings
+    transcodingEnabled: false, // Enable/disable ffmpeg.wasm transcoding
+    isTranscoding: false, // Currently transcoding
+    transcodingProgress: 0, // Transcoding progress percentage
+    ffmpegLoaded: false // Whether ffmpeg.wasm is loaded
   },
 
   // Cleanup functions
@@ -211,6 +216,68 @@ const Player = {
       console.warn('[Player]', warningMsg);
       // Show warning but continue loading - video might still work
       this.showWarning(warningMsg);
+    }
+
+    // Enhanced codec check using Media Capabilities API
+    if ('mediaCapabilities' in navigator && file) {
+      const fileType = file.type.toLowerCase();
+      const fileName = file.name.toLowerCase();
+      
+      // Detect likely video codec
+      let videoCodec = 'video/mp4; codecs="avc1.42E01E"';
+      if (fileName.includes('hevc') || fileName.includes('x265') || fileName.includes('h265') || fileType.includes('hevc')) {
+        videoCodec = 'video/mp4; codecs="hev1.1.6.L93.B0"';
+      } else if (fileName.includes('vp9') || fileType.includes('webm')) {
+        videoCodec = 'video/webm; codecs="vp9"';
+      } else if (fileName.includes('av1')) {
+        videoCodec = 'video/mp4; codecs="av01.0.01M.08"';
+      }
+      
+      // Detect likely audio codec
+      let audioCodec = 'audio/mp4; codecs="mp4a.40.2"';
+      if (audioInfo.codec === 'DTS') {
+        audioCodec = 'audio/mp4; codecs="dtsc"';
+      } else if (audioInfo.codec === 'E-AC3') {
+        audioCodec = 'audio/mp4; codecs="ec-3"';
+      } else if (audioInfo.codec === 'AC3') {
+        audioCodec = 'audio/mp4; codecs="ac-3"';
+      } else if (audioInfo.codec === 'OPUS') {
+        audioCodec = 'audio/webm; codecs="opus"';
+      }
+      
+      // Check using Media Capabilities API
+      Utils.checkCodecSupport(videoCodec, 'video', { width: 1920, height: 1080, bitrate: 5000000, framerate: 30 })
+        .then(videoSupport => {
+          console.log('[Player] Video codec capabilities:', videoSupport);
+          
+          if (!videoSupport.supported) {
+            console.warn('[Player] Video codec may not be supported:', videoCodec);
+          }
+          if (videoSupport.smooth === false) {
+            this.showWarning('Video may not play smoothly on this device');
+          }
+        });
+      
+      Utils.checkCodecSupport(audioCodec, 'audio', { channels: 2, bitrate: 128000, samplerate: 44100 })
+        .then(audioSupport => {
+          console.log('[Player] Audio codec capabilities:', audioSupport);
+          
+          if (!audioSupport.supported) {
+            console.warn('[Player] Audio codec not supported:', audioCodec);
+            
+            // If on ChromeOS and audio codec is unsupported, offer transcoding
+            if (Utils.isChromeOS() && this.state.transcodingEnabled) {
+              this.showWarning(`${audioInfo.codec} audio is not supported. Attempting to transcode...`);
+              this.transcodeAudio(file).then(transcodedFile => {
+                if (transcodedFile) {
+                  // Load the transcoded file instead
+                  console.log('[Player] Loading transcoded file...');
+                  this.loadFile({ target: { files: [transcodedFile] } });
+                }
+              });
+            }
+          }
+        });
     }
 
     // Prevent multiple simultaneous loads
@@ -643,6 +710,193 @@ const Player = {
     // This is a placeholder for future Web Audio API implementation
     console.log('[Player] Audio delay set to:', delayMs, 'ms');
     this.state.audioDelay = delayMs;
+  },
+
+  /**
+   * Load ffmpeg.wasm for client-side transcoding
+   * @returns {Promise<boolean>} Whether ffmpeg was loaded successfully
+   */
+  async loadFFmpeg() {
+    if (this.state.ffmpegLoaded) {
+      return true;
+    }
+
+    // Check if ffmpeg.wasm is already loaded
+    if (typeof FFmpeg !== 'undefined' && FFmpeg.createFFmpeg) {
+      try {
+        this.ffmpeg = FFmpeg.createFFmpeg({
+          log: false,
+          progress: (p) => {
+            this.state.transcodingProgress = Math.round(p.ratio * 100);
+            this.showTranscodingProgress();
+          }
+        });
+        await this.ffmpeg.load();
+        this.state.ffmpegLoaded = true;
+        console.log('[Player] ffmpeg.wasm loaded successfully');
+        return true;
+      } catch (err) {
+        console.error('[Player] Failed to load ffmpeg.wasm:', err);
+        return false;
+      }
+    }
+
+    // Try to load ffmpeg.wasm from CDN
+    try {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js';
+      script.async = true;
+      
+      await new Promise((resolve, reject) => {
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+
+      // Wait for FFmpeg to be available
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (typeof FFmpeg !== 'undefined' && FFmpeg.createFFmpeg) {
+        this.ffmpeg = FFmpeg.createFFmpeg({
+          log: false,
+          progress: (p) => {
+            this.state.transcodingProgress = Math.round(p.ratio * 100);
+            this.showTranscodingProgress();
+          }
+        });
+        await this.ffmpeg.load();
+        this.state.ffmpegLoaded = true;
+        console.log('[Player] ffmpeg.wasm loaded from CDN');
+        return true;
+      }
+    } catch (err) {
+      console.error('[Player] Failed to load ffmpeg.wasm from CDN:', err);
+    }
+
+    return false;
+  },
+
+  /**
+   * Transcode audio from unsupported codec to AAC
+   * @param {File} file - Video file to transcode
+   * @returns {Promise<File>} Transcoded file
+   */
+  async transcodeAudio(file) {
+    if (!this.state.transcodingEnabled) {
+      this.showWarning('Transcoding is disabled. Enable it in settings to fix audio issues.');
+      return null;
+    }
+
+    this.state.isTranscoding = true;
+    this.state.transcodingProgress = 0;
+    this.showTranscodingProgress();
+
+    try {
+      // Load ffmpeg if not already loaded
+      const loaded = await this.loadFFmpeg();
+      if (!loaded) {
+        throw new Error('Could not load ffmpeg.wasm');
+      }
+
+      const fileName = file.name;
+      const inputName = 'input' + fileName.substring(fileName.lastIndexOf('.'));
+      const outputName = 'output.mp4';
+
+      // Write input file to ffmpeg virtual filesystem
+      const fileData = await file.arrayBuffer();
+      this.ffmpeg.FS('writeFile', inputName, new Uint8Array(fileData));
+
+      // Run ffmpeg to transcode audio to AAC
+      await this.ffmpeg.run(
+        '-i', inputName,
+        '-c:v', 'copy', // Copy video stream without re-encoding
+        '-c:a', 'aac', // Transcode audio to AAC
+        '-b:a', '192k', // Audio bitrate
+        '-strict', 'experimental',
+        outputName
+      );
+
+      // Read output file from ffmpeg virtual filesystem
+      const outputData = this.ffmpeg.FS('readFile', outputName);
+      
+      // Create blob from output data
+      const outputBlob = new Blob([outputData.buffer], { type: 'video/mp4' });
+      const outputFile = new File([outputBlob], fileName.replace(/\.[^/.]+$/, '') + '_transcoded.mp4', {
+        type: 'video/mp4'
+      });
+
+      // Clean up ffmpeg virtual filesystem
+      this.ffmpeg.FS('unlink', inputName);
+      this.ffmpeg.FS('unlink', outputName);
+
+      this.state.isTranscoding = false;
+      this.state.transcodingProgress = 100;
+      this.hideTranscodingProgress();
+
+      console.log('[Player] Audio transcoded successfully');
+      this.showWarning('Audio transcoded to AAC. Loading transcoded file...');
+
+      return outputFile;
+    } catch (err) {
+      console.error('[Player] Transcoding failed:', err);
+      this.state.isTranscoding = false;
+      this.hideTranscodingProgress();
+      this.showWarning('Transcoding failed: ' + err.message);
+      return null;
+    }
+  },
+
+  /**
+   * Show transcoding progress overlay
+   */
+  showTranscodingProgress() {
+    let progressEl = Utils.$('#transcodingOverlay');
+    if (!progressEl) {
+      progressEl = document.createElement('div');
+      progressEl.id = 'transcodingOverlay';
+      progressEl.className = 'transcoding-overlay';
+      progressEl.innerHTML = `
+        <div class="transcoding-content">
+          <div class="transcoding-spinner"></div>
+          <p>Transcoding audio...</p>
+          <div class="transcoding-progress-bar">
+            <div class="transcoding-progress-fill" id="transcodingProgressFill"></div>
+          </div>
+          <p class="transcoding-percent" id="transcodingPercent">0%</p>
+        </div>
+      `;
+      this.container.appendChild(progressEl);
+    }
+
+    progressEl.classList.add('visible');
+    
+    const progressFill = Utils.$('#transcodingProgressFill');
+    const progressPercent = Utils.$('#transcodingPercent');
+    if (progressFill) {
+      progressFill.style.width = `${this.state.transcodingProgress}%`;
+    }
+    if (progressPercent) {
+      progressPercent.textContent = `${this.state.transcodingProgress}%`;
+    }
+  },
+
+  /**
+   * Hide transcoding progress overlay
+   */
+  hideTranscodingProgress() {
+    const progressEl = Utils.$('#transcodingOverlay');
+    if (progressEl) {
+      progressEl.classList.remove('visible');
+    }
+  },
+
+  /**
+   * Toggle transcoding feature
+   * @param {boolean} enabled - Whether transcoding should be enabled
+   */
+  setTranscodingEnabled(enabled) {
+    this.state.transcodingEnabled = enabled;
+    console.log('[Player] Transcoding', enabled ? 'enabled' : 'disabled');
   },
 
   // =========================================================================
