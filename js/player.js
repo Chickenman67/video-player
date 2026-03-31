@@ -112,6 +112,29 @@ const Player = {
    * Bind core events
    */
   bindEvents() {
+    // Double-click detection for fullscreen
+    let clickTimeout = null;
+    let clickCount = 0;
+    
+    const handleVideoClick = (e) => {
+      clickCount++;
+      
+      if (clickCount === 1) {
+        clickTimeout = setTimeout(() => {
+          // Single click - toggle play/pause
+          if (clickCount === 1) {
+            this.togglePlay();
+          }
+          clickCount = 0;
+        }, 300); // 300ms delay to detect double-click
+      } else if (clickCount === 2) {
+        // Double click - toggle fullscreen
+        clearTimeout(clickTimeout);
+        clickCount = 0;
+        this.toggleFullscreen();
+      }
+    };
+    
     // Video events
     this.cleanupFns.push(
       Utils.on(this.video, 'loadstart', () => this.onLoadStart()),
@@ -127,7 +150,11 @@ const Player = {
       Utils.on(this.video, 'ended', () => this.onEnded()),
       Utils.on(this.video, 'error', (e) => this.onError(e)),
       Utils.on(this.container, 'mousemove', () => this.showControlsBriefly()),
-      Utils.on(this.video, 'click', () => this.togglePlay())
+      Utils.on(this.video, 'click', handleVideoClick),
+      Utils.on(this.video, 'dblclick', (e) => {
+        e.preventDefault();
+        this.toggleFullscreen();
+      })
     );
 
     // File input
@@ -158,10 +185,32 @@ const Player = {
     if (!file) return;
 
     // Validate it's a video file
-    if (!file.type.startsWith('video/') && !file.name.match(/\.(mp4|mkv|webm|avi|mov|flv|wmv|m4v)$/i)) {
-      this.showError('Please select a valid video file (MP4, MKV, WebM, etc.)');
+    const fileName = file.name.toLowerCase();
+    const fileType = file.type.toLowerCase();
+    const isVideoFile = fileType.startsWith('video/') || 
+                       fileName.match(/\.(mp4|mkv|webm|avi|mov|flv|wmv|m4v|ts|mts|m2ts|vob|ogv|3gp|3g2)$/i);
+    
+    if (!isVideoFile) {
+      this.showError('Please select a valid video file (MP4, MKV, WebM, AVI, MOV, etc.)');
       console.error('[Player] Invalid file type:', file.type, 'name:', file.name);
       return;
+    }
+
+    // Check audio codec compatibility (especially for ChromeOS)
+    const audioInfo = Utils.getAudioCodecInfo(file);
+    if (!audioInfo.supported && audioInfo.codec !== 'Unknown') {
+      const os = Utils.detectOS();
+      let warningMsg = `Warning: Audio codec ${audioInfo.codec} may not be supported`;
+      
+      if (Utils.isChromeOS()) {
+        warningMsg = `Audio codec ${audioInfo.codec} is not supported on ChromeOS. Video will play but audio may be silent. Try converting to AAC or MP3.`;
+      } else if (os === 'ios') {
+        warningMsg = `Audio codec ${audioInfo.codec} has limited support on iOS. Video may play without audio.`;
+      }
+      
+      console.warn('[Player]', warningMsg);
+      // Show warning but continue loading - video might still work
+      this.showWarning(warningMsg);
     }
 
     // Prevent multiple simultaneous loads
@@ -513,6 +562,89 @@ const Player = {
     }
   },
 
+  /**
+   * Toggle Picture-in-Picture mode
+   */
+  async togglePiP() {
+    if (!Utils.isPiPSupported()) {
+      this.showWarning('Picture-in-Picture is not supported in this browser');
+      return;
+    }
+
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        console.log('[Player] Exited PiP mode');
+      } else if (this.video.src) {
+        await this.video.requestPictureInPicture();
+        console.log('[Player] Entered PiP mode');
+      }
+    } catch (err) {
+      console.error('[Player] PiP error:', err);
+      this.showWarning('Could not toggle Picture-in-Picture');
+    }
+  },
+
+  /**
+   * Update audio tracks menu
+   */
+  updateAudioTracks() {
+    const audioTrackMenu = Utils.$('#audioTrackMenu');
+    if (!audioTrackMenu) return;
+
+    // Get audio tracks from video
+    const video = this.video;
+    let tracks = [];
+
+    // Try to get tracks from video element
+    if (video.audioTracks) {
+      tracks = Array.from(video.audioTracks);
+    }
+
+    // Clear menu
+    audioTrackMenu.innerHTML = '';
+
+    if (tracks.length === 0) {
+      audioTrackMenu.innerHTML = '<div style="padding: 8px 16px; color: var(--text-muted); font-size: 11px;">No audio tracks available</div>';
+      return;
+    }
+
+    // Add each track
+    tracks.forEach((track, index) => {
+      const item = document.createElement('button');
+      item.className = 'audio-track-item' + (track.enabled ? ' active' : '');
+      item.innerHTML = `
+        <div class="track-info">
+          <span class="track-name">${track.label || `Track ${index + 1}`}</span>
+          <span class="track-codec">${track.language || 'Unknown'}</span>
+        </div>
+      `;
+      item.addEventListener('click', () => {
+        // Disable all tracks, enable selected
+        tracks.forEach(t => t.enabled = false);
+        track.enabled = true;
+        
+        // Update UI
+        audioTrackMenu.querySelectorAll('.audio-track-item').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
+        
+        console.log('[Player] Audio track changed:', track.label);
+      });
+      audioTrackMenu.appendChild(item);
+    });
+  },
+
+  /**
+   * Set audio delay in milliseconds
+   * @param {number} delayMs - Delay in milliseconds (positive = audio ahead, negative = audio behind)
+   */
+  setAudioDelay(delayMs) {
+    // HTML5 video doesn't natively support audio delay
+    // This is a placeholder for future Web Audio API implementation
+    console.log('[Player] Audio delay set to:', delayMs, 'ms');
+    this.state.audioDelay = delayMs;
+  },
+
   // =========================================================================
   // Controls Visibility
   // =========================================================================
@@ -570,6 +702,39 @@ const Player = {
     this.errorMessage.textContent = message;
     this.errorOverlay.classList.add('visible');
     this.hideLoading();
+  },
+
+  /**
+   * Show warning message (non-blocking)
+   * @param {string} message
+   */
+  showWarning(message) {
+    // Create or get warning element
+    let warningEl = Utils.$('#warningOverlay');
+    if (!warningEl) {
+      warningEl = document.createElement('div');
+      warningEl.id = 'warningOverlay';
+      warningEl.className = 'warning-overlay';
+      warningEl.innerHTML = `
+        <div class="warning-content">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+          </svg>
+          <span id="warningMessage"></span>
+        </div>
+      `;
+      this.container.appendChild(warningEl);
+    }
+    
+    const warningMsg = Utils.$('#warningMessage');
+    if (warningMsg) warningMsg.textContent = message;
+    
+    warningEl.classList.add('visible');
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      warningEl.classList.remove('visible');
+    }, 5000);
   },
 
   /**

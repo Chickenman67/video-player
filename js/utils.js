@@ -291,25 +291,152 @@ const Utils = {
   },
 
   /**
-   * Detect supported audio codecs
-   * @returns {Array} Array of supported audio codecs
+   * Detect operating system for codec compatibility
+   * @returns {string} OS identifier
+   */
+  detectOS() {
+    const ua = navigator.userAgent;
+    if (/CrOS/.test(ua)) return 'chromeos';
+    if (/Windows/.test(ua)) return 'windows';
+    if (/Mac/.test(ua)) return 'macos';
+    if (/Linux/.test(ua)) return 'linux';
+    if (/Android/.test(ua)) return 'android';
+    if (/iPhone|iPad/.test(ua)) return 'ios';
+    return 'unknown';
+  },
+
+  /**
+   * Check if running on ChromeOS
+   * @returns {boolean}
+   */
+  isChromeOS() {
+    return this.detectOS() === 'chromeos';
+  },
+
+  /**
+   * Detect supported audio codecs with ChromeOS awareness
+   * @returns {Object} Object with codec support info and OS
    */
   detectAudioCodecs() {
     const audio = document.createElement('audio');
+    const os = this.detectOS();
+    
     const codecs = [
-      { name: 'AAC', mimeType: 'audio/mp4; codecs="mp4a.40.2"' },
-      { name: 'AAC-LC', mimeType: 'audio/mp4; codecs="mp4a.40.5"' },
-      { name: 'Opus', mimeType: 'audio/webm; codecs="opus"' },
-      { name: 'Vorbis', mimeType: 'audio/webm; codecs="vorbis"' },
-      { name: 'MP3', mimeType: 'audio/mpeg' },
-      { name: 'FLAC', mimeType: 'audio/flac' },
-      { name: 'PCM', mimeType: 'audio/wav' }
+      { name: 'AAC', mimeType: 'audio/mp4; codecs="mp4a.40.2"', critical: true },
+      { name: 'AAC-LC', mimeType: 'audio/mp4; codecs="mp4a.40.5"', critical: true },
+      { name: 'Opus', mimeType: 'audio/webm; codecs="opus"', critical: true },
+      { name: 'Vorbis', mimeType: 'audio/webm; codecs="vorbis"', critical: true },
+      { name: 'MP3', mimeType: 'audio/mpeg', critical: true },
+      { name: 'FLAC', mimeType: 'audio/flac', critical: false },
+      { name: 'PCM', mimeType: 'audio/wav', critical: false },
+      { name: 'AC3', mimeType: 'audio/mp4; codecs="ac-3"', critical: false },
+      { name: 'E-AC3', mimeType: 'audio/mp4; codecs="ec-3"', critical: false },
+      { name: 'DTS', mimeType: 'audio/mp4; codecs="dtsc"', critical: false },
+      { name: 'DTS-HD', mimeType: 'audio/mp4; codecs="dtsh"', critical: false },
+      { name: 'TrueHD', mimeType: 'audio/mp4; codecs="mlpa"', critical: false }
     ];
 
-    return codecs.filter(codec => {
+    const supported = [];
+    const unsupported = [];
+
+    codecs.forEach(codec => {
       const support = audio.canPlayType(codec.mimeType);
-      return support === 'probably' || support === 'maybe';
-    }).map(codec => codec.name);
+      if (support === 'probably' || support === 'maybe') {
+        supported.push(codec.name);
+      } else {
+        unsupported.push({ name: codec.name, critical: codec.critical });
+      }
+    });
+
+    return {
+      supported,
+      unsupported,
+      os,
+      isChromeOS: os === 'chromeos',
+      // ChromeOS typically lacks DTS, E-AC3, AC3 support
+      hasLimitedAudioSupport: os === 'chromeos' || os === 'ios'
+    };
+  },
+
+  /**
+   * Check if audio codec is supported
+   * @param {string} codecName - Name of the codec
+   * @returns {Object} Support status
+   */
+  checkAudioCodecSupport(codecName) {
+    const audio = document.createElement('audio');
+    const codecMap = {
+      'aac': 'audio/mp4; codecs="mp4a.40.2"',
+      'mp3': 'audio/mpeg',
+      'opus': 'audio/webm; codecs="opus"',
+      'vorbis': 'audio/webm; codecs="vorbis"',
+      'flac': 'audio/flac',
+      'ac3': 'audio/mp4; codecs="ac-3"',
+      'eac3': 'audio/mp4; codecs="ec-3"',
+      'dts': 'audio/mp4; codecs="dtsc"',
+      'dts-hd': 'audio/mp4; codecs="dtsh"',
+      'pcm': 'audio/wav',
+      'wav': 'audio/wav',
+      'truehd': 'audio/mp4; codecs="mlpa"'
+    };
+
+    const mimeType = codecMap[codecName.toLowerCase()];
+    if (!mimeType) return { supported: false, reason: 'Unknown codec' };
+
+    const support = audio.canPlayType(mimeType);
+    return {
+      supported: support === 'probably' || support === 'maybe',
+      level: support,
+      mimeType,
+      reason: support ? null : `${codecName} is not supported on ${this.detectOS()}`
+    };
+  },
+
+  /**
+   * Get comprehensive audio codec info from file
+   * @param {File} file - Video file
+   * @returns {Object} Audio codec information
+   */
+  getAudioCodecInfo(file) {
+    if (!file) return { codec: 'Unknown', supported: true };
+
+    const fileName = file.name.toLowerCase();
+    const fileType = file.type.toLowerCase();
+    
+    // Common audio codec patterns in filenames
+    const audioPatterns = {
+      'dts': /\b(dts|dts-hd|dts-hdma|dts-x)\b/i,
+      'ac3': /\b(ac3|ac-3|dd)\b/i,
+      'eac3': /\b(eac3|e-ac3|ddp|dd+)\b/i,
+      'truehd': /\b(truehd|true-hd|atmos)\b/i,
+      'aac': /\b(aac|aac-lc)\b/i,
+      'opus': /\b(opus)\b/i,
+      'flac': /\b(flac)\b/i,
+      'mp3': /\b(mp3)\b/i,
+      'vorbis': /\b(vorbis)\b/i,
+      'pcm': /\b(pcm|lpcm)\b/i
+    };
+
+    let detectedCodec = 'Unknown';
+    
+    for (const [codec, pattern] of Object.entries(audioPatterns)) {
+      if (pattern.test(fileName)) {
+        detectedCodec = codec.toUpperCase();
+        break;
+      }
+    }
+
+    // Check support for detected codec
+    const support = this.checkAudioCodecSupport(detectedCodec);
+    
+    return {
+      codec: detectedCodec,
+      supported: support.supported,
+      supportLevel: support.level,
+      reason: support.reason,
+      os: this.detectOS(),
+      isChromeOS: this.isChromeOS()
+    };
   },
 
   /**

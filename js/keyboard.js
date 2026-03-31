@@ -188,6 +188,12 @@ const Keyboard = {
         Controls.toggleStats();
         break;
 
+      // Toggle Picture-in-Picture
+      case 'p':
+        e.preventDefault();
+        Player.togglePiP();
+        break;
+
       // Number keys 0-9 for seeking
       case '0':
       case '1':

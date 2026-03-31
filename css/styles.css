@@ -388,7 +388,7 @@ video {
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.95) 40%, rgba(15, 23, 42, 0.95) 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.4) 100%);
   padding: 32px 16px 16px 16px;
   z-index: 5;
   opacity: 1;
@@ -1290,4 +1290,316 @@ input:focus-visible {
 .drop-zone.drag-over svg {
   opacity: 1;
   transform: scale(1.1) translateY(-4px);
+}
+
+/* ==========================================================================
+   Warning Overlay
+   ========================================================================== */
+
+.warning-overlay {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(245, 158, 11, 0.9);
+  border: 1px solid rgba(245, 158, 11, 0.6);
+  border-radius: var(--border-radius);
+  padding: 12px 20px;
+  z-index: 25;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-normal), visibility var(--transition-normal);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: slideDown 0.3s ease-out;
+}
+
+.warning-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.warning-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.warning-content svg {
+  flex-shrink: 0;
+  color: #fff;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Picture-in-Picture Button
+   ========================================================================== */
+
+.pip-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ==========================================================================
+   Audio Track Selector
+   ========================================================================== */
+
+.audio-track-container {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.audio-track-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px) scale(0.95);
+  background: rgba(20, 20, 25, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius);
+  padding: 8px 0;
+  min-width: 180px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-normal), visibility var(--transition-normal), transform var(--transition-normal);
+}
+
+.audio-track-menu.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.audio-track-item {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.audio-track-item:hover {
+  background: var(--dropdown-item-hover);
+  color: var(--text-primary);
+}
+
+.audio-track-item.active {
+  color: var(--primary-accent);
+  font-weight: 600;
+}
+
+.audio-track-item .track-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.audio-track-item .track-name {
+  font-size: 12px;
+}
+
+.audio-track-item .track-codec {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Audio Delay Control
+   ========================================================================== */
+
+.audio-delay-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+}
+
+.audio-delay-input {
+  width: 60px;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  text-align: center;
+}
+
+.audio-delay-input:focus {
+  border-color: var(--toggle-active);
+}
+
+.audio-delay-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   Equalizer Panel
+   ========================================================================== */
+
+.equalizer-panel {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  transform: translateY(8px);
+  background: rgba(10, 14, 39, 0.98);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--border-radius);
+  padding: 16px;
+  min-width: 240px;
+  box-shadow: var(--shadow-xl);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-normal), visibility var(--transition-normal), transform var(--transition-normal);
+}
+
+.equalizer-panel.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.equalizer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.equalizer-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.equalizer-close {
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.equalizer-close:hover {
+  color: var(--text-primary);
+}
+
+.equalizer-presets {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.eq-preset-btn {
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.eq-preset-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.eq-preset-btn.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: var(--primary-accent);
+}
+
+.equalizer-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eq-band {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eq-band label {
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 40px;
+  text-align: right;
+}
+
+.eq-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  outline: none;
+}
+
+.eq-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: var(--primary-accent);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.eq-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: var(--primary-accent);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.eq-value {
+  font-size: 10px;
+  color: var(--primary-accent);
+  width: 30px;
+  text-align: left;
 }

@@ -180,6 +180,55 @@ const Controls = {
       Utils.on(document, 'webkitfullscreenchange', () => this.onFullscreenChange())
     );
 
+    // Picture-in-Picture
+    const pipBtn = Utils.$('#pipBtn');
+    if (pipBtn) {
+      this.cleanupFns.push(
+        Utils.on(pipBtn, 'click', () => Player.togglePiP())
+      );
+    }
+
+    // Audio Track Selector
+    const audioTrackBtn = Utils.$('#audioTrackBtn');
+    const audioTrackMenu = Utils.$('#audioTrackMenu');
+    
+    if (audioTrackBtn && audioTrackMenu) {
+      this.cleanupFns.push(
+        Utils.on(audioTrackBtn, 'click', (e) => {
+          e.stopPropagation();
+          audioTrackMenu.classList.toggle('visible');
+        })
+      );
+
+      // Close audio track menu on outside click
+      this.cleanupFns.push(
+        Utils.on(document, 'click', (e) => {
+          if (!audioTrackBtn.contains(e.target)) {
+            audioTrackMenu.classList.remove('visible');
+          }
+        })
+      );
+    }
+
+    // Update audio tracks when metadata loads
+    this.cleanupFns.push(
+      Utils.on(Player.video, 'loadedmetadata', () => {
+        setTimeout(() => Player.updateAudioTracks(), 100);
+      })
+    );
+
+    // Keyboard shortcut for PiP
+    this.cleanupFns.push(
+      Utils.on(document, 'keydown', (e) => {
+        if (e.key.toLowerCase() === 'p' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            Player.togglePiP();
+          }
+        }
+      })
+    );
+
     // Close menus on outside click
     this.cleanupFns.push(
       Utils.on(document, 'click', (e) => {
