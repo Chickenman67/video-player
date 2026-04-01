@@ -329,11 +329,6 @@ const Utils = {
       { name: 'MP3', mimeType: 'audio/mpeg', critical: true },
       { name: 'FLAC', mimeType: 'audio/flac', critical: false },
       { name: 'PCM', mimeType: 'audio/wav', critical: false },
-      { name: 'AC3', mimeType: 'audio/mp4; codecs="ac-3"', critical: false },
-      { name: 'E-AC3', mimeType: 'audio/mp4; codecs="ec-3"', critical: false },
-      { name: 'DTS', mimeType: 'audio/mp4; codecs="dtsc"', critical: false },
-      { name: 'DTS-HD', mimeType: 'audio/mp4; codecs="dtsh"', critical: false },
-      { name: 'TrueHD', mimeType: 'audio/mp4; codecs="mlpa"', critical: false }
     ];
 
     const supported = [];

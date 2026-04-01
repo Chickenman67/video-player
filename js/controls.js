@@ -284,17 +284,17 @@ const Controls = {
         const maxBitrateToggle = e.target.closest('[data-max-bitrate]');
         if (maxBitrateToggle) {
           const value = maxBitrateToggle.dataset.maxBitrate;
-          const bitrate = value === 'auto' ? null : parseInt(value);
+          const bitrate = value === '0' ? null : parseInt(value) * 1000; // Convert Mbps to kbps
           Player.setMaxBitrate(bitrate);
           this.updateMaxBitrateUI(value);
         }
 
-        // Transcoding toggle
-        const transcodeToggle = e.target.closest('[data-transcode]');
-        if (transcodeToggle) {
-          const value = transcodeToggle.dataset.transcode;
-          Player.setTranscodingEnabled(value === 'on');
-          this.updateTranscodingUI(value);
+        // Quality preference toggle
+        const qualityToggle = e.target.closest('[data-quality]');
+        if (qualityToggle) {
+          const value = qualityToggle.dataset.quality;
+          Player.setQualityPreference(value);
+          this.updateQualityUI(value);
         }
       })
     );
@@ -515,6 +515,7 @@ const Controls = {
   // Shortcuts Overlay
   // =========================================================================
 
+
   /**
    * Show keyboard shortcuts overlay
    */
@@ -611,14 +612,15 @@ const Controls = {
   },
 
   /**
-   * Update transcoding UI
-   * @param {string} value - 'on' or 'off'
+   * Update quality preference UI
+   * @param {string} value - quality preference value
    */
-  updateTranscodingUI(value) {
-    Utils.$$('[data-transcode]', this.settingsModal).forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.transcode === value);
+  updateQualityUI(value) {
+    Utils.$$('[data-quality]', this.settingsModal).forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.quality === value);
     });
   },
+
 
   /**
    * Initialize settings UI with current values
@@ -651,6 +653,10 @@ const Controls = {
     
     // Update seek duration UI to reflect current Keyboard.seekDuration
     this.updateSeekDurationUI(Keyboard.seekDuration);
+    
+    // Update quality preference UI
+    const qualityPreference = Player.state.qualityPreference || 'auto';
+    this.updateQualityUI(qualityPreference);
   },
 
   /**

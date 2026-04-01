@@ -236,40 +236,6 @@
         </div>
         
         <div class="settings-body">
-          <!-- Performance -->
-          <div class="settings-group">
-            <h3>Performance</h3>
-            <div class="setting-row">
-              <label>Hardware Acceleration</label>
-              <div class="toggle-group">
-                <button class="toggle-btn active" data-hw="on">On</button>
-                <button class="toggle-btn" data-hw="off">Off</button>
-              </div>
-            </div>
-            <div class="transcoding-setting">
-              <label>Audio Transcoding (for ChromeOS)</label>
-              <div class="toggle-group">
-                <button class="toggle-btn" data-transcode="on">On</button>
-                <button class="toggle-btn active" data-transcode="off">Off</button>
-              </div>
-              <p class="transcoding-info">Convert unsupported audio (DTS, E-AC3) to AAC. Uses ffmpeg.wasm (~28MB). May be slow on large files.</p>
-            </div>
-          </div>
-
-          <!-- Playback -->
-          <div class="settings-group">
-            <h3>Playback</h3>
-            <div class="setting-row">
-              <label>Arrow Key Skip Duration</label>
-              <div class="toggle-group">
-                <button class="toggle-btn active" data-seek="5">5s</button>
-                <button class="toggle-btn" data-seek="10">10s</button>
-                <button class="toggle-btn" data-seek="15">15s</button>
-                <button class="toggle-btn" data-seek="30">30s</button>
-              </div>
-            </div>
-          </div>
-
           <!-- Buffering -->
           <div class="settings-group">
             <h3>Buffering</h3>
@@ -287,21 +253,36 @@
                 <span class="slider-value" id="bufferBehindValue">5s</span>
               </div>
             </div>
+          </div>
+
+          <!-- Quality -->
+          <div class="settings-group">
+            <h3>Quality</h3>
+            <div class="setting-row">
+              <label>Quality Preference</label>
+              <div class="toggle-group">
+                <button class="toggle-btn" data-quality="auto">Auto</button>
+                <button class="toggle-btn" data-quality="4k">4K</button>
+                <button class="toggle-btn" data-quality="1080p">1080p</button>
+                <button class="toggle-btn" data-quality="720p">720p</button>
+                <button class="toggle-btn" data-quality="480p">480p</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <label>Max Bitrate (Mbps)</label>
+              <div class="toggle-group">
+                <button class="toggle-btn active" data-max-bitrate="0">Unlimited</button>
+                <button class="toggle-btn" data-max-bitrate="20">20</button>
+                <button class="toggle-btn" data-max-bitrate="10">10</button>
+                <button class="toggle-btn" data-max-bitrate="5">5</button>
+                <button class="toggle-btn" data-max-bitrate="2">2</button>
+              </div>
+            </div>
             <div class="setting-row">
               <label>Auto Quality Adjustment</label>
               <div class="toggle-group">
                 <button class="toggle-btn active" data-auto-quality="on">On</button>
                 <button class="toggle-btn" data-auto-quality="off">Off</button>
-              </div>
-            </div>
-            <div class="setting-row">
-              <label>Max Bitrate</label>
-              <div class="toggle-group">
-                <button class="toggle-btn active" data-max-bitrate="auto">Auto</button>
-                <button class="toggle-btn" data-max-bitrate="1000">1 Mbps</button>
-                <button class="toggle-btn" data-max-bitrate="2000">2 Mbps</button>
-                <button class="toggle-btn" data-max-bitrate="5000">5 Mbps</button>
-                <button class="toggle-btn" data-max-bitrate="0">Unlimited</button>
               </div>
             </div>
           </div>
