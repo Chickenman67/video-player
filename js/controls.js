@@ -85,7 +85,8 @@ const Controls = {
     this.cleanupFns.push(
       Utils.on(this.progressContainer, 'mousedown', (e) => this.startSeek(e)),
       Utils.on(this.progressContainer, 'mousemove', (e) => this.showProgressTooltip(e)),
-      Utils.on(this.progressContainer, 'mouseleave', () => this.hideProgressTooltip())
+      Utils.on(this.progressContainer, 'mouseleave', () => this.hideProgressTooltip()),
+      Utils.on(this.progressContainer, 'wheel', (e) => this.handleProgressWheel(e), { passive: false })
     );
 
     // Global mouse events for seeking
@@ -360,6 +361,32 @@ const Controls = {
    */
   hideProgressTooltip() {
     this.progressTooltip.style.opacity = '0';
+  },
+
+  /**
+   * Handle mouse wheel on progress bar for seeking
+   * @param {WheelEvent} e
+   */
+  handleProgressWheel(e) {
+    e.preventDefault();
+    const video = Player.video;
+    if (!video || !video.duration) return;
+
+    // Determine direction and amount
+    const delta = e.deltaY > 0 ? -5 : 5; // Scroll down = backward, scroll up = forward
+    const newTime = Utils.clamp(video.currentTime + delta, 0, video.duration);
+
+    // Use seeking module for fast seek
+    Seeking.smartSeek(newTime);
+
+    // Update progress bar immediately
+    const percent = newTime / video.duration;
+    this.updateProgressBar(percent);
+
+    // Show feedback
+    if (Keyboard && Keyboard.showFeedback) {
+      Keyboard.showFeedback(delta > 0 ? '⏩ +5s' : '⏪ -5s');
+    }
   },
 
   // =========================================================================

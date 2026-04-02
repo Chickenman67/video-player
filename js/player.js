@@ -17,6 +17,9 @@ const Player = {
   // Current file reference for codec detection
   currentFile: null,
 
+  // Streaming cleanup function
+  streamingCleanup: null,
+
   // State
   state: {
     isPlaying: false,
@@ -70,7 +73,12 @@ const Player = {
   init() {
     this.cacheElements();
     this.bindEvents();
-    console.log('[Player] Initialized');
+
+    // Initialize optimization modules
+    Streaming.init();
+    Seeking.init();
+
+    console.log('[Player] Initialized with streaming and seeking modules');
   },
 
   /**

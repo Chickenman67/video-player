@@ -692,5 +692,85 @@ const Utils = {
       return `${(kbps / 1000).toFixed(1)} Mbps`;
     }
     return `${kbps} kbps`;
+  },
+
+  /**
+   * Get device memory (GB) with fallback
+   * @returns {number} Device memory in GB, or 4 as default
+   */
+  getDeviceMemory() {
+    if (navigator.deviceMemory) {
+      return parseFloat(navigator.deviceMemory);
+    }
+    // Fallback: estimate from userAgent
+    if (this.detectOS() === 'ios') {
+      // iOS devices typically have 2-6GB
+      return 3;
+    }
+    return 4; // Default assumption
+  },
+
+  /**
+   * Get memory usage info (Chrome only)
+   * @returns {Object|null} Memory info or null if not available
+   */
+  getMemoryInfo() {
+    if (performance && performance.memory) {
+      return {
+        usedJSHeapSize: performance.memory.usedJSHeapSize,
+        totalJSHeapSize: performance.memory.totalJSHeapSize,
+        jsHeapSizeLimit: performance.memory.jsHeapSizeLimit,
+        usedMB: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
+        totalMB: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024),
+        limitMB: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024)
+      };
+    }
+    return null;
+  },
+
+  /**
+   * Check if memory pressure is high
+   * @returns {boolean}
+   */
+  isMemoryPressureHigh() {
+    const memory = this.getMemoryInfo();
+    if (!memory) return false;
+    // Consider high pressure if using >75% of heap limit
+    return (memory.usedJSHeapSize / memory.jsHeapSizeLimit) > 0.75;
+  },
+
+  /**
+   * Get optimal buffer size based on device memory
+   * @returns {number} Buffer size in MB
+   */
+  getOptimalBufferSize() {
+    const deviceMemory = this.getDeviceMemory();
+    if (deviceMemory <= 2) return 20; // Low memory devices
+    if (deviceMemory <= 4) return 50; // Medium memory devices
+    return 100; // High memory devices
+  },
+
+  /**
+   * Request idle callback with fallback
+   * @param {Function} callback
+   * @param {Object} options
+   * @returns {number}
+   */
+  requestIdle(callback, options = {}) {
+    if ('requestIdleCallback' in window) {
+      return requestIdleCallback(callback, options);
+    }
+    return setTimeout(callback, 50);
+  },
+
+  /**
+   * Cancel idle callback
+   * @param {number} id
+   */
+  cancelIdle(id) {
+    if ('cancelIdleCallback' in window) {
+      return cancelIdleCallback(id);
+    }
+    return clearTimeout(id);
   }
 };

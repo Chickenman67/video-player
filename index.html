@@ -339,16 +339,19 @@
   </div>
 
   <script src="js/utils.js"></script>
+  <script src="js/worker-fileReader.js"></script>
+  <script src="js/streaming.js"></script>
+  <script src="js/seeking.js"></script>
   <script src="js/player.js"></script>
   <script src="js/controls.js"></script>
   <script src="js/keyboard.js"></script>
   <script>
-    // Initialize Video Player
+    // Initialize Video Player with optimizations
     document.addEventListener('DOMContentLoaded', function() {
       Player.init();
       Controls.init();
       Keyboard.init();
-      console.log('[Video Player] Ready');
+      console.log('[Video Player] Ready with streaming and seeking optimizations');
     });
   </script>
 </body>

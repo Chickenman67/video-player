@@ -116,6 +116,9 @@ const Keyboard = {
 
     const key = e.key.toLowerCase();
 
+    // Handle Shift+Arrow for 10-second jumps
+    const isShift = e.shiftKey;
+
     switch (key) {
       // Play/Pause
       case ' ':
@@ -136,18 +139,30 @@ const Keyboard = {
         Player.toggleFullscreen();
         break;
 
-      // Seek backward
+      // Seek backward (5s or 10s with Shift)
       case 'arrowleft':
       case 'j':
         e.preventDefault();
-        Player.seekBy(-this.seekDuration);
+        if (isShift) {
+          Seeking.seekBackward(10);
+          this.showFeedback('⏪ -10s');
+        } else {
+          Seeking.seekBackward(this.seekDuration);
+          this.showFeedback(`⏪ -${this.seekDuration}s`);
+        }
         break;
 
-      // Seek forward
+      // Seek forward (5s or 10s with Shift)
       case 'arrowright':
       case 'l':
         e.preventDefault();
-        Player.seekBy(this.seekDuration);
+        if (isShift) {
+          Seeking.seekForward(10);
+          this.showFeedback('⏩ +10s');
+        } else {
+          Seeking.seekForward(this.seekDuration);
+          this.showFeedback(`⏩ +${this.seekDuration}s`);
+        }
         break;
 
       // Volume up
@@ -194,6 +209,28 @@ const Keyboard = {
         Player.togglePiP();
         break;
 
+      // Frame step backward (when paused)
+      case ',':
+        if (Player.state.isPaused) {
+          e.preventDefault();
+          this.frameStep(-1);
+        }
+        break;
+
+      // Frame step forward (when paused)
+      case '.':
+        if (Player.state.isPaused) {
+          e.preventDefault();
+          this.frameStep(1);
+        }
+        break;
+
+      // Jump to time (G key)
+      case 'g':
+        e.preventDefault();
+        this.promptJumpToTime();
+        break;
+
       // Number keys 0-9 for seeking
       case '0':
       case '1':
@@ -206,7 +243,8 @@ const Keyboard = {
       case '8':
       case '9':
         e.preventDefault();
-        Player.seekToPercent(parseInt(key) * 10);
+        Seeking.seekToPercent(parseInt(key) * 10);
+        this.showFeedback(`${key}0%`);
         break;
 
       // Escape - close overlays
@@ -241,6 +279,61 @@ const Keyboard = {
     if (currentIndex < speeds.length - 1) {
       Player.setPlaybackRate(speeds[currentIndex + 1]);
     }
+  },
+
+  /**
+   * Frame step (when paused)
+   * @param {number} direction - -1 for backward, 1 for forward
+   */
+  frameStep(direction) {
+    const video = Player.video;
+    if (!video || !video.duration) return;
+
+    // Approximate frame duration at 30fps
+    const frameDuration = 1 / 30;
+    const newTime = Utils.clamp(video.currentTime + (direction * frameDuration), 0, video.duration);
+
+    video.currentTime = newTime;
+    this.showFeedback(direction > 0 ? '▶ Next frame' : '◀ Previous frame');
+    console.log('[Keyboard] Frame step:', direction > 0 ? 'forward' : 'backward');
+  },
+
+  /**
+   * Prompt user to jump to specific time
+   */
+  promptJumpToTime() {
+    const video = Player.video;
+    if (!video || !video.duration) return;
+
+    const currentTime = Utils.formatTime(video.currentTime);
+    const duration = Utils.formatTime(video.duration);
+
+    const input = prompt(`Jump to time (current: ${currentTime} / ${duration})\nEnter time in seconds or MM:SS format:`);
+
+    if (!input) return;
+
+    let targetSeconds;
+
+    // Parse input
+    if (input.includes(':')) {
+      const parts = input.split(':').map(Number);
+      if (parts.length === 2) {
+        targetSeconds = parts[0] * 60 + parts[1];
+      } else if (parts.length === 3) {
+        targetSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+      }
+    } else {
+      targetSeconds = parseFloat(input);
+    }
+
+    if (isNaN(targetSeconds) || targetSeconds < 0) {
+      this.showFeedback('❌ Invalid time');
+      return;
+    }
+
+    targetSeconds = Utils.clamp(targetSeconds, 0, video.duration);
+    Seeking.jumpToTime(targetSeconds);
+    this.showFeedback(`⏩ Jumped to ${Utils.formatTime(targetSeconds)}`);
   },
 
   /**
